@@ -1,0 +1,844 @@
+#![allow(dead_code)]
+#![allow(clippy::excessive_precision)]
+
+use windows::Win32::Graphics::Direct2D::Common::D2D1_COLOR_F;
+pub const D2D1_COLOR_ALICE_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.941_176_5_f32,
+  g: 0.972_549_f32,
+  b: 1.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_ANTIQUE_WHITE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.98039216f32,
+  g: 0.92156863f32,
+  b: 0.84313725f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_AQUA: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.0f32,
+  g: 1.0f32,
+  b: 1.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_AQUAMARINE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.49803922f32,
+  g: 1.0f32,
+  b: 0.83137255f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_AZURE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.941_176_5_f32,
+  g: 1.0f32,
+  b: 1.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_BEIGE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.960_784_3_f32,
+  g: 0.960_784_3_f32,
+  b: 0.8627451f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_BISQUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.89411765f32,
+  b: 0.76862745f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_BLACK: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.0f32,
+  g: 0.0f32,
+  b: 0.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_BLANCHED_ALMOND: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.92156863f32,
+  b: 0.80392157f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.0f32,
+  g: 0.0f32,
+  b: 1.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_BLUE_VIOLET: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.54117647f32,
+  g: 0.16862745f32,
+  b: 0.88627451f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_BROWN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.64705882f32,
+  g: 0.16470588f32,
+  b: 0.16470588f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_BURLY_WOOD: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.87058824f32,
+  g: 0.72156863f32,
+  b: 0.52941176f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_CADET_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.37254902f32,
+  g: 0.61960784f32,
+  b: 0.62745098f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_CHARTREUSE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.49803922f32,
+  g: 1.0f32,
+  b: 0.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_CHOCOLATE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.82352941f32,
+  g: 0.41176471f32,
+  b: 0.11764706f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_CORAL: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.49803922f32,
+  b: 0.31372549f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_CORNFLOWER_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.39215686f32,
+  g: 0.58431373f32,
+  b: 0.92941176f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_CORNSILK: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.97254902f32,
+  b: 0.8627451f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_CRIMSON: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.8627451f32,
+  g: 0.07843137f32,
+  b: 0.23529412f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_CYAN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.0f32,
+  g: 1.0f32,
+  b: 1.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.0f32,
+  g: 0.0f32,
+  b: 0.54509804f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_CYAN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.0f32,
+  g: 0.54509804f32,
+  b: 0.54509804f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_GOLDENROD: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.72156863f32,
+  g: 0.5254902f32,
+  b: 0.04313725f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_GRAY: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.6627451f32,
+  g: 0.6627451f32,
+  b: 0.6627451f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_GREEN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.0f32,
+  g: 0.39215686f32,
+  b: 0.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_KHAKI: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.74117647f32,
+  g: 0.71764706f32,
+  b: 0.41960784f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_MAGENTA: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.54509804f32,
+  g: 0.0f32,
+  b: 0.54509804f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_OLIVE_GREEN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.33333333f32,
+  g: 0.41960784f32,
+  b: 0.18431373f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_ORANGE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.54901961f32,
+  b: 0.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_ORCHID: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.6f32,
+  g: 0.19607843f32,
+  b: 0.8f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_RED: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.54509804f32,
+  g: 0.0f32,
+  b: 0.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_SALMON: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.91372549f32,
+  g: 0.58823529f32,
+  b: 0.47843137f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_SEA_GREEN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.56078431f32,
+  g: 0.7372549f32,
+  b: 0.56078431f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_SLATE_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.28235294f32,
+  g: 0.23921569f32,
+  b: 0.54509804f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_SLATE_GRAY: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.18431373f32,
+  g: 0.30980392f32,
+  b: 0.30980392f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_TURQUOISE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.0f32,
+  g: 0.80784314f32,
+  b: 0.81960784f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DARK_VIOLET: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.58039216f32,
+  g: 0.0f32,
+  b: 0.82745098f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DEEP_PINK: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.07843137f32,
+  b: 0.57647059f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DEEP_SKY_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.0f32,
+  g: 0.74901961f32,
+  b: 1.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DIM_GRAY: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.41176471f32,
+  g: 0.41176471f32,
+  b: 0.41176471f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_DODGER_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.11764706f32,
+  g: 0.56470588f32,
+  b: 1.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_FIREBRICK: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.69803922f32,
+  g: 0.13333333f32,
+  b: 0.13333333f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_FLORAL_WHITE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.98039216f32,
+  b: 0.94117647f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_FOREST_GREEN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.13333333f32,
+  g: 0.54509804f32,
+  b: 0.13333333f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_FUCHSIA: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.0f32,
+  b: 1.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_GAINSBORO: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.8627451f32,
+  g: 0.8627451f32,
+  b: 0.8627451f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_GHOST_WHITE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.97254902f32,
+  g: 0.97254902f32,
+  b: 1.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_GOLD: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.84313725f32,
+  b: 0.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_GOLDENROD: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.85490196f32,
+  g: 0.64705882f32,
+  b: 0.1254902f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_GRAY: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.50196078f32,
+  g: 0.50196078f32,
+  b: 0.50196078f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_GREEN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.0f32,
+  g: 0.50196078f32,
+  b: 0.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_GREEN_YELLOW: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.67843137f32,
+  g: 1.0f32,
+  b: 0.18431373f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_HONEYDEW: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.94117647f32,
+  g: 1.0f32,
+  b: 0.94117647f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_HOT_PINK: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.41176471f32,
+  b: 0.70588235f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_INDIAN_RED: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.80392157f32,
+  g: 0.36078431f32,
+  b: 0.36078431f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_INDIGO: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.29411765f32,
+  g: 0.0f32,
+  b: 0.50980392f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_IVORY: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 1.0f32,
+  b: 0.94117647f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_KHAKI: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.94117647f32,
+  g: 0.90196078f32,
+  b: 0.54901961f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LAVENDER: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.90196078f32,
+  g: 0.90196078f32,
+  b: 0.98039216f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LAVENDER_BLUSH: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.94117647f32,
+  b: 0.96078431f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LAWN_GREEN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.48627451f32,
+  g: 0.98823529f32,
+  b: 0.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LEMON_CHIFFON: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.98039216f32,
+  b: 0.80392157f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LIGHT_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.67843137f32,
+  g: 0.84705882f32,
+  b: 0.90196078f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LIGHT_CORAL: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.94117647f32,
+  g: 0.50196078f32,
+  b: 0.50196078f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LIGHT_CYAN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.87843137f32,
+  g: 1.0f32,
+  b: 1.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LIGHT_GOLDENROD_YELLOW: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.98039216f32,
+  g: 0.98039216f32,
+  b: 0.82352941f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LIGHT_GREEN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.56470588f32,
+  g: 0.93333333f32,
+  b: 0.56470588f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LIGHT_GRAY: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.82745098f32,
+  g: 0.82745098f32,
+  b: 0.82745098f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LIGHT_PINK: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.71372549f32,
+  b: 0.75686275f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LIGHT_SALMON: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.62745098f32,
+  b: 0.47843137f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LIGHT_SEA_GREEN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.1254902f32,
+  g: 0.69803922f32,
+  b: 0.66666667f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LIGHT_SKY_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.52941176f32,
+  g: 0.80784314f32,
+  b: 0.98039216f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LIGHT_SLATE_GRAY: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.46666667f32,
+  g: 0.53333333f32,
+  b: 0.6f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LIGHT_STEEL_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.69019608f32,
+  g: 0.76862745f32,
+  b: 0.87058824f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LIGHT_YELLOW: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 1.0f32,
+  b: 0.87843137f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LIME: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.0f32,
+  g: 1.0f32,
+  b: 0.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LIME_GREEN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.19607843f32,
+  g: 0.80392157f32,
+  b: 0.19607843f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_LINEN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.98039216f32,
+  g: 0.94117647f32,
+  b: 0.90196078f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_MAGENTA: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.0f32,
+  b: 1.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_MAROON: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.50196078f32,
+  g: 0.0f32,
+  b: 0.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_MEDIUM_AQUAMARINE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.4f32,
+  g: 0.80392157f32,
+  b: 0.66666667f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_MEDIUM_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.0f32,
+  g: 0.0f32,
+  b: 0.80392157f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_MEDIUM_ORCHID: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.72941176f32,
+  g: 0.33333333f32,
+  b: 0.82745098f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_MEDIUM_PURPLE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.57647059f32,
+  g: 0.43921569f32,
+  b: 0.85882353f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_MEDIUM_SEA_GREEN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.23529412f32,
+  g: 0.70196078f32,
+  b: 0.44313725f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_MEDIUM_SLATE_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.48235294f32,
+  g: 0.40784314f32,
+  b: 0.93333333f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_MEDIUM_SPRING_GREEN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.0f32,
+  g: 0.98039216f32,
+  b: 0.60392157f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_MEDIUM_TURQUOISE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.28235294f32,
+  g: 0.81960784f32,
+  b: 0.8f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_MEDIUM_VIOLET_RED: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.78039216f32,
+  g: 0.08235294f32,
+  b: 0.52156863f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_MIDNIGHT_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.09803922f32,
+  g: 0.09803922f32,
+  b: 0.43921569f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_MINT_CREAM: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.96078431f32,
+  g: 1.0f32,
+  b: 0.98039216f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_MISTY_ROSE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.89411765f32,
+  b: 0.88235294f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_MOCCASIN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.89411765f32,
+  b: 0.70980392f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_NAVAJO_WHITE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.87058824f32,
+  b: 0.67843137f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_NAVY: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.0f32,
+  g: 0.0f32,
+  b: 0.50196078f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_OLD_LACE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.99215686f32,
+  g: 0.96078431f32,
+  b: 0.90196078f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_OLIVE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.50196078f32,
+  g: 0.50196078f32,
+  b: 0.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_OLIVE_DRAB: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.41960784f32,
+  g: 0.55686275f32,
+  b: 0.1372549f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_ORANGE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.64705882f32,
+  b: 0.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_ORANGE_RED: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.27058824f32,
+  b: 0.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_ORCHID: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.85490196f32,
+  g: 0.43921569f32,
+  b: 0.83921569f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_PALE_GOLDENROD: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.93333333f32,
+  g: 0.90980392f32,
+  b: 0.66666667f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_PALE_GREEN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.59607843f32,
+  g: 0.98431373f32,
+  b: 0.59607843f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_PALE_TURQUOISE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.68627451f32,
+  g: 0.93333333f32,
+  b: 0.93333333f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_PALE_VIOLET_RED: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.85882353f32,
+  g: 0.43921569f32,
+  b: 0.57647059f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_PAPAYA_WHIP: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.9372549f32,
+  b: 0.83529412f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_PEACH_PUFF: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.85490196f32,
+  b: 0.7254902f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_PERU: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.80392157f32,
+  g: 0.52156863f32,
+  b: 0.24705882f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_PINK: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.75294118f32,
+  b: 0.79607843f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_PLUM: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.86666667f32,
+  g: 0.62745098f32,
+  b: 0.86666667f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_POWDER_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.69019608f32,
+  g: 0.87843137f32,
+  b: 0.90196078f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_PURPLE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.50196078f32,
+  g: 0.0f32,
+  b: 0.50196078f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_RED: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.0f32,
+  b: 0.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_ROSY_BROWN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.7372549f32,
+  g: 0.56078431f32,
+  b: 0.56078431f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_ROYAL_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.25490196f32,
+  g: 0.41176471f32,
+  b: 0.88235294f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_SADDLE_BROWN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.54509804f32,
+  g: 0.27058824f32,
+  b: 0.0745098f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_SALMON: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.98039216f32,
+  g: 0.50196078f32,
+  b: 0.44705882f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_SANDY_BROWN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.95686275f32,
+  g: 0.64313725f32,
+  b: 0.37647059f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_SEA_GREEN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.18039216f32,
+  g: 0.54509804f32,
+  b: 0.34117647f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_SEA_SHELL: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.96078431f32,
+  b: 0.93333333f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_SIENNA: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.62745098f32,
+  g: 0.32156863f32,
+  b: 0.17647059f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_SILVER: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.75294118f32,
+  g: 0.75294118f32,
+  b: 0.75294118f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_SKY_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.52941176f32,
+  g: 0.80784314f32,
+  b: 0.92156863f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_SLATE_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.41568627f32,
+  g: 0.35294118f32,
+  b: 0.80392157f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_SLATE_GRAY: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.43921569f32,
+  g: 0.50196078f32,
+  b: 0.56470588f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_SNOW: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.98039216f32,
+  b: 0.98039216f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_SPRING_GREEN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.0f32,
+  g: 1.0f32,
+  b: 0.49803922f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_STEEL_BLUE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.2745098f32,
+  g: 0.50980392f32,
+  b: 0.70588235f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_TAN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.82352941f32,
+  g: 0.70588235f32,
+  b: 0.54901961f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_TEAL: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.0f32,
+  g: 0.50196078f32,
+  b: 0.50196078f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_THISTLE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.84705882f32,
+  g: 0.74901961f32,
+  b: 0.84705882f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_TOMATO: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 0.38823529f32,
+  b: 0.27843137f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_TURQUOISE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.25098039f32,
+  g: 0.87843137f32,
+  b: 0.81568627f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_VIOLET: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.93333333f32,
+  g: 0.50980392f32,
+  b: 0.93333333f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_WHEAT: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.96078431f32,
+  g: 0.87058824f32,
+  b: 0.70196078f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_WHITE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 1.0f32,
+  b: 1.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_WHITE_SMOKE: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.960_784_3_f32,
+  g: 0.960_784_3_f32,
+  b: 0.960_784_3_f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_YELLOW: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 1.0f32,
+  g: 1.0f32,
+  b: 0.0f32,
+  a: 1.0f32,
+};
+pub const D2D1_COLOR_YELLOW_GREEN: D2D1_COLOR_F = D2D1_COLOR_F {
+  r: 0.603_921_6_f32,
+  g: 0.803_921_6_f32,
+  b: 0.19607843f32,
+  a: 1.0f32,
+};
