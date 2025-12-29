@@ -1,20 +1,19 @@
 use anyhow::{Context, Result};
 use tracing::{debug, error, info};
+use widestring::U16CString;
 use windows::Win32::{
   Foundation::HWND,
   Graphics::{
-    Direct2D::Common::D2D_RECT_F,
-    Gdi::{InvalidateRect, RDW_INVALIDATE, RedrawWindow, UpdateWindow},
+    Direct2D::{Common::D2D_RECT_F, D2D1_DRAW_TEXT_OPTIONS_NONE},
+    DirectWrite::DWRITE_TEXT_METRICS,
   },
-  UI::WindowsAndMessaging::{
-    HWND_BROADCAST, PostMessageA, PostThreadMessageA, WM_PAINT,
-  },
+  UI::WindowsAndMessaging::{PostMessageA, WM_PAINT},
 };
 use windows_numerics::Vector2;
 
 use crate::{
   color,
-  d2d::D2DHost,
+  d2d::{self, D2DHost},
   watcher::{self, GlazeWmService, WorkspaceStatus},
 };
 
@@ -61,11 +60,10 @@ impl Minibar {
       ws_indicators,
       glazewm,
     };
-    ret.place_rects();
     ret
   }
 
-  fn update_workspace(&mut self) {
+  fn update_workspace(&mut self, d2d_host: &D2DHost) {
     let ws_indicators = self
       .glazewm
       .current_workspaces()
@@ -76,14 +74,13 @@ impl Minibar {
       })
       .collect();
     self.ws_indicators = ws_indicators;
-    self.place_rects();
     debug!("new indicators: {:?}", self.ws_indicators);
   }
 }
 
 impl Minibar {
   pub fn on_paint_d2d(&mut self, d2d_host: &D2DHost) -> Result<()> {
-    self.update_workspace();
+    self.update_workspace(d2d_host);
 
     debug!("paint");
 
@@ -107,7 +104,53 @@ impl Minibar {
       );
     }
 
-    for indicator in self.ws_indicators.iter() {
+    let mut x = self.config.bar_height as f32;
+
+    for indicator in self.ws_indicators.iter_mut() {
+      // compute the layout
+      let ws_name =
+        U16CString::from_str_truncate(indicator.status.fullname());
+      let layout = unsafe {
+        d2d_host.dwrite_factory.CreateTextLayout(
+          ws_name.as_ref(),
+          &d2d_host.font,
+          f32::MAX,
+          f32::MAX,
+        )
+      }?;
+
+      let metrics: DWRITE_TEXT_METRICS = {
+        let mut it = Default::default();
+        unsafe { layout.GetMetrics(&mut it) }?;
+        it
+      };
+
+      let box_pad = 5.0;
+
+      let centered = Vector2 {
+        X: x + box_pad,
+        Y: self.config.bar_height as f32 / 2.0 - metrics.height / 2.0,
+      };
+
+      let left = x;
+      let top = self.config.pad_size as f32;
+
+      let box_h =
+        (self.config.bar_height - 2 * self.config.pad_size) as f32;
+      let box_w = 2.0 * box_pad + metrics.widthIncludingTrailingWhitespace;
+      let right = left + box_w;
+      let bottom = top + box_h;
+      x = right + self.config.pad_size as f32;
+
+      indicator.location = {
+        D2D_RECT_F {
+          left,
+          top,
+          right,
+          bottom,
+        }
+      };
+
       unsafe {
         if indicator.status.activated {
           solid_brush.SetColor(&color::D2D1_COLOR_AQUAMARINE);
@@ -126,6 +169,12 @@ impl Minibar {
           &solid_brush,
           1.0,
           None,
+        );
+        d2d_host.render_target.DrawTextLayout(
+          centered,
+          &layout,
+          &solid_brush,
+          D2D1_DRAW_TEXT_OPTIONS_NONE,
         );
       }
     }
@@ -150,35 +199,6 @@ impl Minibar {
     Ok(())
   }
 
-  fn place_rects(&mut self) {
-    for (index, indicator) in self.ws_indicators.iter_mut().enumerate() {
-      indicator.location = {
-        let box_size =
-          (self.config.bar_height - 2 * self.config.pad_size) as f32;
-
-        let left = self.config.pad_size as f32
-          + (box_size + self.config.pad_size as f32) * (1 + index) as f32;
-        let top = self.config.pad_size as f32;
-        let right = left + box_size;
-        let bottom = top + box_size;
-
-        D2D_RECT_F {
-          left,
-          top,
-          right,
-          bottom,
-        }
-      };
-    }
-    debug!(
-      "locs: {:?}",
-      self
-        .ws_indicators
-        .iter()
-        .map(|i| i.location)
-        .collect::<Vec<D2D_RECT_F>>()
-    )
-  }
   // implement hover effect here
   pub fn on_move() {}
 

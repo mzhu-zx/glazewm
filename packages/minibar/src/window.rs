@@ -128,7 +128,7 @@ impl Window<Minibar> {
     wparam: WPARAM,
     lparam: LPARAM,
   ) -> Result<bool> {
-    debug!("{:#X}", umsg);
+    // debug!("{:#X}", umsg);
     match umsg {
       WM_CREATE => {
         self

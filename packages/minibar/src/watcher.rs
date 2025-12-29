@@ -13,6 +13,16 @@ pub struct WorkspaceStatus {
   pub activated: bool,
 }
 
+impl WorkspaceStatus {
+  pub fn fullname(&self) -> String {
+    if let Some(dn) = self.display_name.as_ref() {
+      format!("{}:{}", self.name, dn)
+    } else {
+      self.name.clone()
+    }
+  }
+}
+
 // subscribe to workspace events
 async fn start_watcher(tx_refresh: Sender<()>) {
   tokio::spawn(async move {
@@ -175,7 +185,7 @@ impl GlazeWmService {
       .map(|ws| WorkspaceStatus {
         name: ws.name.clone(),
         display_name: ws.display_name.clone(),
-        activated: ws.is_displayed
+        activated: ws.is_displayed,
       })
       .collect()
   }

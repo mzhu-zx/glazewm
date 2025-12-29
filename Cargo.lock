@@ -995,6 +995,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "widestring",
  "windows 0.62.2",
  "windows-numerics",
  "wm-common",
@@ -2073,6 +2074,12 @@ checksum = "1a05d73b933a847d6cccdda8f838a22ff101ad9bf93e33684f39c1f5f0eece3d"
 dependencies = [
  "unicode-ident",
 ]
+
+[[package]]
+name = "widestring"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72069c3113ab32ab29e5584db3c6ec55d416895e60715417b5b883a357c3e471"
 
 [[package]]
 name = "winapi"
