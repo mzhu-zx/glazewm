@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+  sync::{Arc, Mutex},
+  time::Duration,
+};
 
 use anyhow::{Context, Result};
 use tokio::sync::mpsc::{self, Receiver, Sender};
@@ -25,11 +28,19 @@ impl WorkspaceStatus {
 
 // subscribe to workspace events
 async fn start_watcher(tx_refresh: Sender<()>) {
-  tokio::spawn(async move {
-    let mut client = IpcClient::connect().await?;
+  tokio::spawn(async move { watcher_main(tx_refresh).await.unwrap() });
+}
+
+async fn watcher_main(tx_refresh: Sender<()>) -> Result<()> {
+  loop {
+    let Ok(mut client) = IpcClient::connect().await else {
+      warn!("cannot connect, retry in 5 seconds");
+      tokio::time::sleep(Duration::from_secs(5)).await;
+      continue;
+    };
 
     // push the first event to trigger the initial update
-    tx_refresh.send(()).await?;
+    tx_refresh.send(()).await.context("tx_refresh")?;
 
     let subscription_message =
       "sub -e workspace_updated workspace_activated focus_changed";
@@ -58,14 +69,17 @@ async fn start_watcher(tx_refresh: Sender<()>) {
         | Some(WmEvent::FocusChanged { .. }) => {
           tx_refresh.send(()).await?
         }
+        None => {
+          warn!("watcher ipc closed. try reconnect ...");
+          break;
+        }
         _ => {
           warn!("unexpected event: {:?}", event_data);
           continue;
         }
       }
     }
-    anyhow::Ok(())
-  });
+  }
 }
 
 async fn start_interpreter(
@@ -73,18 +87,23 @@ async fn start_interpreter(
   tx_cmd: Sender<MinibarCommand>,
 ) {
   tokio::spawn(async move {
-    // let mut client = IpcClient::connect().await?;
-    loop {
-      let () = rx_refresh
-        .recv()
-        .await
-        .context("refresh channel is closed?")?;
-      while let Ok(_) = rx_refresh.try_recv() {} // eat repetitive events
-      debug!("fresh request received, dispatch to interpreter");
-      tx_cmd.send(MinibarCommand::GetWorkspaces).await?;
-    }
-    anyhow::Ok(())
+    interpreter_main(rx_refresh, tx_cmd).await.unwrap()
   });
+}
+
+async fn interpreter_main(
+  mut rx_refresh: Receiver<()>,
+  tx_cmd: Sender<MinibarCommand>,
+) -> Result<()> {
+  loop {
+    let () = rx_refresh
+      .recv()
+      .await
+      .context("refresh channel is closed?")?;
+    while let Ok(_) = rx_refresh.try_recv() {} // eat repetitive events
+    debug!("fresh request received, dispatch to interpreter");
+    tx_cmd.send(MinibarCommand::GetWorkspaces).await?;
+  }
 }
 
 #[derive(Debug)]
@@ -99,20 +118,46 @@ async fn start_cli(
   shared_workspaces: Arc<Mutex<Vec<WorkspaceDto>>>,
 ) {
   tokio::spawn(async move {
-    let mut client = IpcClient::connect().await?;
+    cli_main(rx_cmd, tx_repaint, shared_workspaces)
+      .await
+      .unwrap()
+  });
+}
+
+async fn cli_main(
+  mut rx_cmd: Receiver<MinibarCommand>,
+  tx_repaint: Sender<()>,
+  shared_workspaces: Arc<Mutex<Vec<WorkspaceDto>>>,
+) -> Result<()> {
+  loop {
+    let Ok(mut client) = IpcClient::connect().await else {
+      warn!("cannot connect, retry in 5 seconds");
+      tokio::time::sleep(Duration::from_secs(5)).await;
+      continue;
+    };
     loop {
-      let cmd = rx_cmd.recv().await.context("cli closed")?;
+      let cmd =
+        rx_cmd.recv().await.context("rx_cmd shouldn't be closed.")?;
       debug!("new command: {:?}", cmd);
       match cmd {
         MinibarCommand::Raw(cmd) => {
-          client.send(&cmd).await.context("fail to send")?;
+          if let Err(e) = client.send(&cmd).await.context("fail to send") {
+            warn!("fail to send: {}", e);
+            break;
+          }
           if let Some(ret) = client.client_response(&cmd).await {
             debug!("{}: {:?}", cmd, ret);
           }
         }
         MinibarCommand::GetWorkspaces => {
           debug!("begin query workspace");
-          let workspaces = query_workspace(&mut client).await?;
+          let workspaces = match query_workspace(&mut client).await {
+            Ok(w) => w,
+            Err(e) => {
+              warn!("cannot send: {}", e);
+              break;
+            }
+          };
           // dbg!("new workspaces: {:?}", &workspaces);
           *(shared_workspaces.lock().unwrap()) = workspaces;
           debug!("workspace has been updated, send repaint signal.");
@@ -120,8 +165,7 @@ async fn start_cli(
         }
       }
     }
-    anyhow::Ok(())
-  });
+  }
 }
 
 async fn query_workspace(
