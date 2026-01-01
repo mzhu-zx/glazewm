@@ -1,4 +1,7 @@
-use std::{i32, sync::Once};
+use std::{
+  i32,
+  sync::{Once, atomic::AtomicU64},
+};
 
 use anyhow::{Context, Result};
 use tracing::{debug, info};
@@ -35,7 +38,7 @@ use windows::{
 use windows_numerics::Matrix3x2;
 
 // use crate::compositor::CompositionHost;
-use crate::minibar::Minibar;
+use crate::{minibar::Minibar, monitor::MonitorInfo};
 use crate::{color, d2d::D2DHost, minibar};
 
 static REGISTER_MAIN_WINDOW_CLASS: Once = Once::new();
@@ -44,6 +47,7 @@ pub struct Window<State> {
   hwnd: HWND,
   state: State,
   d2d_host: Option<D2DHost>,
+  monitor: MonitorInfo,
 }
 
 impl<T> Window<T> {
@@ -86,7 +90,9 @@ impl Window<Minibar> {
           let create_struct = lparam.0 as *mut CREATESTRUCTW;
           let window = (*create_struct).lpCreateParams as *mut Self;
           (*window).hwnd = hwnd;
-          create_appbar(hwnd, 30).context("make app bar").unwrap();
+          create_appbar(hwnd, 30, (*window).monitor.rect)
+            .context("make app bar")
+            .unwrap();
           SetWindowLongPtrW(hwnd, GWLP_USERDATA, window as isize);
           window
         }
@@ -187,7 +193,8 @@ impl Window<Minibar> {
 
   // pub fn create(state: State) -> Box<Self> {
   /// Create a new main window.
-  pub fn create(state: Minibar) -> Box<Self> {
+  pub fn create(monitor: MonitorInfo, state: Minibar) -> Box<Self> {
+    info!("monitor: {:?}", monitor);
     unsafe { CoInitialize(None) }.ok().unwrap();
 
     const CLASS_NAME: PCWSTR = w!("Minibar-Main");
@@ -205,11 +212,12 @@ impl Window<Minibar> {
       };
       unsafe { RegisterClassW(&wc) };
     });
-
+    let rect = monitor.rect;
     let mut boxed = Box::new(Self {
       state,
       hwnd: Default::default(),
       d2d_host: None,
+      monitor,
     });
 
     let hwnd = unsafe {
@@ -218,10 +226,10 @@ impl Window<Minibar> {
         CLASS_NAME,
         w!("Minibar - main"),
         WS_POPUP,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
+        rect.left,
+        rect.top,
+        rect.right - rect.left,
+        boxed.state.config.bar_height,
         None,
         None,
         Some(hinst),
@@ -239,13 +247,22 @@ impl Window<Minibar> {
   }
 }
 
+static GLOBAL_COUNTER: AtomicU64 = AtomicU64::new(0);
+
 const MINIBAR_MAGIC_NUMBER: u32 = 42;
-fn create_appbar(app_hwnd: HWND, bar_height: i32) -> Result<()> {
+fn create_appbar(
+  app_hwnd: HWND,
+  bar_height: i32,
+  rect: RECT,
+) -> Result<()> {
+  let magic = MINIBAR_MAGIC_NUMBER
+    + GLOBAL_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+      as u32;
   let uret = unsafe {
     let mut data = APPBARDATA {
       cbSize: std::mem::size_of::<APPBARDATA>() as u32,
       hWnd: app_hwnd,
-      uCallbackMessage: MINIBAR_MAGIC_NUMBER,
+      uCallbackMessage: magic,
       ..Default::default()
     };
     SHAppBarMessage(ABM_NEW, &mut data)
@@ -254,12 +271,12 @@ fn create_appbar(app_hwnd: HWND, bar_height: i32) -> Result<()> {
   let mut data = APPBARDATA {
     cbSize: std::mem::size_of::<APPBARDATA>() as u32,
     hWnd: app_hwnd,
-    uCallbackMessage: MINIBAR_MAGIC_NUMBER,
+    uCallbackMessage: magic,
     uEdge: ABE_TOP,
     rc: RECT {
-      left: 0,
-      top: 0,
-      right: unsafe { GetSystemMetrics(SM_CXSCREEN) },
+      left: rect.left,
+      top: rect.top,
+      right: rect.right,
       bottom: bar_height,
     },
     ..Default::default()
@@ -281,17 +298,17 @@ fn create_appbar(app_hwnd: HWND, bar_height: i32) -> Result<()> {
   Ok(())
 }
 
-fn remove(app_hwnd: HWND) {
-  let uret = unsafe {
-    let mut data = APPBARDATA {
-      cbSize: std::mem::size_of::<APPBARDATA>() as u32,
-      hWnd: app_hwnd,
-      uCallbackMessage: MINIBAR_MAGIC_NUMBER,
-      ..Default::default()
-    };
-    SHAppBarMessage(ABM_REMOVE, &mut data);
-  };
-}
+// fn remove(app_hwnd: HWND) {
+//   let uret = unsafe {
+//     let mut data = APPBARDATA {
+//       cbSize: std::mem::size_of::<APPBARDATA>() as u32,
+//       hWnd: app_hwnd,
+//       uCallbackMessage: MINIBAR_MAGIC_NUMBER,
+//       ..Default::default()
+//     };
+//     SHAppBarMessage(ABM_REMOVE, &mut data);
+//   };
+// }
 
 /// LOWORD is X
 /// HIWORD is Y

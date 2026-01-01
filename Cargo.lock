@@ -995,6 +995,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "uuid",
  "widestring",
  "windows 0.62.2",
  "windows-numerics",

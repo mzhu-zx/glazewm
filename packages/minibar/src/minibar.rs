@@ -55,7 +55,7 @@ impl Minibar {
         status,
       })
       .collect();
-    let mut ret = Self {
+    let ret = Self {
       config,
       ws_indicators,
       glazewm,

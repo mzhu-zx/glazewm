@@ -6,8 +6,13 @@ use std::{
 use anyhow::{Context, Result};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tracing::{debug, warn};
-use wm_common::{ClientResponseData, ContainerDto, WmEvent, WorkspaceDto};
+use uuid::Uuid;
+use wm_common::{
+  ClientResponseData, ContainerDto, MonitorDto, WmEvent, WorkspaceDto,
+};
 use wm_ipc_client::IpcClient;
+
+use crate::monitor;
 
 #[derive(Debug)]
 pub struct WorkspaceStatus {
@@ -115,10 +120,12 @@ pub enum MinibarCommand {
 async fn start_cli(
   mut rx_cmd: Receiver<MinibarCommand>,
   tx_repaint: Sender<()>,
+  device_name: String,
   shared_workspaces: Arc<Mutex<Vec<WorkspaceDto>>>,
+  monitor: Arc<Mutex<Option<MonitorDto>>>,
 ) {
   tokio::spawn(async move {
-    cli_main(rx_cmd, tx_repaint, shared_workspaces)
+    cli_main(rx_cmd, tx_repaint, device_name, shared_workspaces, monitor)
       .await
       .unwrap()
   });
@@ -127,7 +134,9 @@ async fn start_cli(
 async fn cli_main(
   mut rx_cmd: Receiver<MinibarCommand>,
   tx_repaint: Sender<()>,
+  device_name: String,
   shared_workspaces: Arc<Mutex<Vec<WorkspaceDto>>>,
+  shared_monitor: Arc<Mutex<Option<MonitorDto>>>,
 ) -> Result<()> {
   loop {
     let Ok(mut client) = IpcClient::connect().await else {
@@ -135,6 +144,19 @@ async fn cli_main(
       tokio::time::sleep(Duration::from_secs(5)).await;
       continue;
     };
+
+    debug!("begin query monitor");
+    let montor = match query_monitors(&mut client, &device_name).await {
+      Ok(w) => w,
+      Err(e) => {
+        warn!("cannot send: {}", e);
+        continue;
+      }
+    };
+    // dbg!("new workspaces: {:?}", &workspaces);
+    *(shared_monitor.lock().unwrap()) = montor;
+    debug!("monitor has been updated");
+
     loop {
       let cmd =
         rx_cmd.recv().await.context("rx_cmd shouldn't be closed.")?;
@@ -198,34 +220,86 @@ async fn query_workspace(
     .context("Invalid data in workspace query response.")
 }
 
+async fn query_monitors(
+  client: &mut IpcClient,
+  dev_name: &str,
+) -> Result<Option<MonitorDto>> {
+  let query_message = "query monitors";
+
+  client
+    .send(query_message)
+    .await
+    .context("Failed to send workspace query command.")?;
+
+  client
+    .client_response(query_message)
+    .await
+    .and_then(|response| match response.data {
+      Some(ClientResponseData::Monitors(data)) => Some(data),
+      _ => None,
+    })
+    .map(|data| {
+      data
+        .monitors
+        .into_iter()
+        .filter_map(|container| match container {
+          ContainerDto::Monitor(mon) if mon.device_name == dev_name => {
+            Some(mon)
+          }
+          _ => None,
+        })
+        .take(1)
+        .collect::<Vec<MonitorDto>>()
+        .pop()
+    })
+    .context("Invalid data in workspace query monitor.")
+}
+
 pub struct GlazeWmService {
   tx_cmd: mpsc::Sender<MinibarCommand>,
   rx_repaint: Option<mpsc::Receiver<()>>,
   workspaces: Arc<Mutex<Vec<WorkspaceDto>>>,
+  monitor: Arc<Mutex<Option<MonitorDto>>>,
 }
 
 impl GlazeWmService {
-  pub async fn start() -> GlazeWmService {
+  pub async fn start(device_name: String) -> GlazeWmService {
     let workspaces = Arc::new(Mutex::new(vec![]));
+    let monitor = Arc::new(Mutex::new(None));
     let (tx_cmd, rx_cmd) = mpsc::channel::<MinibarCommand>(32);
     let (tx_refresh, rx_refresh) = mpsc::channel::<()>(32);
     let (tx_repaint, rx_repaint) = mpsc::channel::<()>(32);
-    start_cli(rx_cmd, tx_repaint.clone(), workspaces.clone()).await;
+    start_cli(
+      rx_cmd,
+      tx_repaint.clone(),
+      device_name,
+      workspaces.clone(),
+      monitor.clone(),
+    )
+    .await;
     start_watcher(tx_refresh).await;
     start_interpreter(rx_refresh, tx_cmd.clone()).await;
     GlazeWmService {
       tx_cmd,
       rx_repaint: Some(rx_repaint),
       workspaces,
+      monitor,
     }
   }
+
+  fn monitor_id(&self) -> Option<Uuid> {
+    self.monitor.clone().lock().unwrap().as_ref().map(|x| x.id)
+  }
   pub fn current_workspaces(&self) -> Vec<WorkspaceStatus> {
+    let monitor_id = self.monitor_id();
+
     self
       .workspaces
       .clone()
       .lock()
       .unwrap()
       .iter()
+      .filter(|ws| monitor_id == ws.parent_id)
       .map(|ws| WorkspaceStatus {
         name: ws.name.clone(),
         display_name: ws.display_name.clone(),
