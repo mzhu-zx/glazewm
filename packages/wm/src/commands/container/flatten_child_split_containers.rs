@@ -21,7 +21,7 @@ pub fn flatten_child_split_containers(
     let tiling_children = parent
       .children()
       .into_iter()
-      .filter(|child| child.is_tiling_window() || child.is_split())
+      .filter(|child| child.is_tiling_window() || child.is_split() || child.is_stack())
       .collect::<Vec<_>>();
 
     if tiling_children.len() == 1 {

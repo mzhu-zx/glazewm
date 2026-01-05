@@ -60,6 +60,7 @@ pub trait TilingSizeGetters: CommonGetters {
       match parent {
         // Prevent workspaces from being resized.
         DirectionContainer::Split(parent) => Some(parent.into()),
+        DirectionContainer::Stack(parent) => Some(parent.into()),
         DirectionContainer::Workspace(_) => None,
       }
     } else {

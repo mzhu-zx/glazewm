@@ -2,6 +2,7 @@ use anyhow::Context;
 
 use super::flatten_split_container;
 use crate::{
+  commands::container::flatten_tiling_container,
   models::Container,
   traits::{CommonGetters, TilingSizeGetters, MIN_TILING_SIZE},
 };
@@ -16,10 +17,10 @@ pub fn detach_container(child_to_remove: Container) -> anyhow::Result<()> {
   // the child.
   if let Some(split_parent) = child_to_remove
     .parent()
-    .and_then(|parent| parent.as_split().cloned())
+    .and_then(|parent| parent.as_tiling_container().ok())
   {
     if split_parent.child_count() == 1 {
-      flatten_split_container(split_parent)?;
+      flatten_tiling_container(split_parent)?;
     }
   }
 

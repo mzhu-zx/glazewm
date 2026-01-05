@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::{
   MonitorDto, RootContainerDto, SplitContainerDto, WindowDto, WorkspaceDto,
 };
+use crate::StackContainerDto;
 
 /// User-friendly representation of a container.
 ///
@@ -14,5 +15,6 @@ pub enum ContainerDto {
   Monitor(MonitorDto),
   Workspace(WorkspaceDto),
   Split(SplitContainerDto),
+  Stack(StackContainerDto),
   Window(WindowDto),
 }

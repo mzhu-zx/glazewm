@@ -38,6 +38,9 @@ pub enum WmEvent {
     direction_container: ContainerDto,
     new_tiling_direction: TilingDirection,
   },
+  StackToggled {
+    direction_container: ContainerDto,
+  },
   UserConfigChanged {
     config_path: String,
     config_string: String,

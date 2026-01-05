@@ -11,8 +11,7 @@ use wm_platform::PlatformEvent;
 use crate::{
   commands::{
     container::{
-      focus_container_by_id, focus_in_direction, set_tiling_direction,
-      toggle_tiling_direction,
+      focus_container_by_id, focus_in_direction, set_tiling_direction, toggle_stack, toggle_tiling_direction
     },
     general::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
@@ -20,9 +19,7 @@ use crate::{
     },
     monitor::focus_monitor,
     window::{
-      ignore_window, move_window_in_direction, move_window_to_workspace,
-      resize_window, set_window_position, set_window_size,
-      update_window_state, WindowPositionTarget,
+      WindowPositionTarget, ignore_window, move_window_in_direction, move_window_to_workspace, resize_window, set_window_position, set_window_size, update_window_state
     },
     workspace::{
       focus_workspace, move_workspace_in_direction,
@@ -702,6 +699,9 @@ impl WindowManager {
       }
       InvokeCommand::ToggleTilingDirection => {
         toggle_tiling_direction(subject_container, state, config)
+      }
+      InvokeCommand::ToggleStack => {
+        toggle_stack(subject_container, state, config)
       }
       InvokeCommand::SetTilingDirection { tiling_direction } => {
         set_tiling_direction(

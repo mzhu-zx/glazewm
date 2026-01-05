@@ -23,6 +23,9 @@ pub trait TilingDirectionGetters: CommonGetters {
 
     // Traverse further down if the child is a split container.
     match child {
+      TilingContainer::Stack(stack_child) => {
+        stack_child.descendant_in_direction(direction)
+      }
       TilingContainer::Split(split_child) => {
         split_child.descendant_in_direction(direction)
       }

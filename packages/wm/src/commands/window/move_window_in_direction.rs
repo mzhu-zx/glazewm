@@ -200,6 +200,42 @@ fn move_to_sibling_container(
           .queue_containers_to_redraw(parent.tiling_children());
       }
     }
+    TilingContainer::Stack(sibling_stack) => {
+      let sibling_descendant =
+        sibling_stack.descendant_in_direction(&direction.inverse());
+
+      // Move the window into the sibling stack container.
+      if let Some(sibling_descendant) = sibling_descendant {
+        let target_parent = sibling_descendant
+          .direction_container()
+          .context("No direction container.")?;
+
+        let has_matching_tiling_direction =
+          TilingDirection::from_direction(direction)
+            == target_parent.tiling_direction();
+
+        let target_index = match direction {
+          Direction::Down | Direction::Right
+            if has_matching_tiling_direction =>
+          {
+            sibling_descendant.index()
+          }
+          _ => sibling_descendant.index() + 1,
+        };
+
+        move_container_within_tree(
+          &window_to_move.into(),
+          &target_parent.clone().into(),
+          target_index,
+          state,
+        )?;
+
+        state
+          .pending_sync
+          .queue_container_to_redraw(target_parent)
+          .queue_containers_to_redraw(parent.tiling_children());
+      }
+    }
   }
 
   Ok(())

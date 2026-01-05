@@ -42,6 +42,11 @@ pub fn focus_in_direction(
   // Set focus to the target container.
   if let Some(focus_target) = focus_target {
     set_focused_descendant(&focus_target, None);
+    if let Some(p) = focus_target.parent() {
+      if p.is_stack() {
+        state.pending_sync.queue_container_to_redraw(p);
+      }
+    }
     state.pending_sync.queue_focus_change().queue_cursor_jump();
   }
 
@@ -115,6 +120,9 @@ fn tiling_focus_target(
         return Ok(match target {
           TilingContainer::TilingWindow(_) => Some(target.into()),
           TilingContainer::Split(split) => split
+            .descendant_in_direction(&direction.inverse())
+            .map(Into::into),
+          TilingContainer::Stack(stack) => stack
             .descendant_in_direction(&direction.inverse())
             .map(Into::into),
         });

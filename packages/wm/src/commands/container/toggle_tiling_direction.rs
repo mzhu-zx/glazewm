@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{Context, Ok};
 use wm_common::{TilingDirection, WmEvent};
 
 use super::{flatten_split_container, wrap_in_split_container};
@@ -16,6 +16,10 @@ pub fn toggle_tiling_direction(
 ) -> anyhow::Result<()> {
   let direction_container = match container {
     Container::TilingWindow(tiling_window) => {
+      if tiling_window.parent().is_some_and(|p| p.is_stack()) {
+        // for now, stick to stack instead of tab view
+        return Ok(())
+      }
       toggle_window_direction(tiling_window, config)
     }
     Container::Workspace(workspace) => {
@@ -47,7 +51,8 @@ fn toggle_window_direction(
   // If the window is an only child, then either change the tiling
   // direction of its parent workspace or flatten its parent split
   // container.
-  if tiling_window.tiling_siblings().count() == 0 {
+  if (tiling_window.tiling_siblings().count() == 0) ||
+  (matches!(parent, DirectionContainer::Stack(_))){
     return match parent {
       DirectionContainer::Workspace(workspace) => {
         workspace
@@ -61,6 +66,10 @@ fn toggle_window_direction(
         tiling_window
           .direction_container()
           .context("No direction container.")
+      }
+      DirectionContainer::Stack(stack) => {
+        stack.set_tiling_direction(stack.tiling_direction().inverse());
+        stack.as_direction_container()
       }
     };
   }

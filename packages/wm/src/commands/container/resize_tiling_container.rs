@@ -16,6 +16,9 @@ pub fn resize_tiling_container(
     return;
   }
 
+  let in_stack =
+    container_to_resize.parent().is_some_and(|p| p.is_stack());
+
   // Prevent the container from being smaller than the minimum size, and
   // larger than the space available from sibling containers.
   #[allow(clippy::cast_precision_loss)]
@@ -26,6 +29,13 @@ pub fn resize_tiling_container(
 
   let size_delta = clamped_target_size - container_to_resize.tiling_size();
   container_to_resize.set_tiling_size(clamped_target_size);
+
+  if in_stack {
+    for sibling in &tiling_siblings {
+      sibling.set_tiling_size(MIN_TILING_SIZE);
+    }
+    return;
+  }
 
   // Get available tiling size amongst siblings.
   let available_size =

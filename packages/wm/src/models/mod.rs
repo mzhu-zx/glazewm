@@ -7,7 +7,6 @@ mod split_container;
 mod tiling_window;
 mod workspace;
 mod workspace_target;
-
 mod stack_container;
 
 
@@ -20,4 +19,4 @@ pub use split_container::*;
 pub use tiling_window::*;
 pub use workspace::*;
 pub use workspace_target::*;
-
+pub use stack_container::*;

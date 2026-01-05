@@ -12,6 +12,7 @@ use wm_common::{
 };
 use wm_platform::NativeWindow;
 
+use crate::models::StackContainer;
 #[allow(clippy::wildcard_imports)]
 use crate::{
   models::{
@@ -99,6 +100,8 @@ pub enum Container {
   Workspace(Workspace),
   #[subenum(TilingContainer, DirectionContainer)]
   Split(SplitContainer),
+  #[subenum(TilingContainer, DirectionContainer)]
+  Stack(StackContainer),
   #[subenum(TilingContainer, WindowContainer)]
   TilingWindow(TilingWindow),
   #[subenum(WindowContainer)]

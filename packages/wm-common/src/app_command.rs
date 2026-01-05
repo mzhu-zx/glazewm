@@ -145,6 +145,7 @@ pub enum SubscribableEvent {
   MonitorUpdated,
   MonitorRemoved,
   TilingDirectionChanged,
+  StackToggled,
   UserConfigChanged,
   WindowManaged,
   WindowUnmanaged,
@@ -231,6 +232,7 @@ pub enum InvokeCommand {
   },
   ToggleMinimized,
   ToggleTiling,
+  ToggleStack,
   ToggleTilingDirection,
   SetTilingDirection {
     #[clap(required = true)]
