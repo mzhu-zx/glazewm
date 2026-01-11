@@ -10,7 +10,7 @@ use wm_common::{
 use wm_platform::{Platform, ZOrder};
 
 use crate::{
-  models::{Container, WindowContainer},
+  models::{Container, StackContainer, WindowContainer},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -244,6 +244,19 @@ fn redraw_containers(
 
       continue;
     }
+
+    // if let Some(parent) = window.parent() {
+    //   if parent.is_stack() {
+    //     let mut z = ZOrder::Normal;
+    //     for window in window
+    //       .filter_map(|c| c.as_window_container().ok())
+    //     {
+    //       window.native().set_z_order(&z);
+    //       z = ZOrder::AfterWindow(window.native().handle);
+    //     }
+    //     window.native().set_z_order(&z);
+    //   }
+    // }
 
     // Transition display state depending on whether window will be
     // shown or hidden.
