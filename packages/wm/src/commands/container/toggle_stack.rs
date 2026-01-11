@@ -8,10 +8,14 @@ use anyhow::Context;
 use wm_common::{TilingDirection, WmEvent};
 
 use crate::{
-  commands::container::flatten_tiling_container, models::{
+  commands::container::flatten_tiling_container,
+  models::{
     Container, DirectionContainer, StackContainer, TilingContainer,
     TilingWindow,
-  }, traits::{CommonGetters, TilingDirectionGetters, TilingSizeGetters}, user_config::UserConfig, wm_state::WmState
+  },
+  traits::{CommonGetters, TilingDirectionGetters, TilingSizeGetters},
+  user_config::UserConfig,
+  wm_state::WmState,
 };
 
 pub fn toggle_stack(
@@ -31,7 +35,9 @@ pub fn toggle_stack(
     direction_container: direction_container.to_dto()?,
   });
 
-  state.pending_sync.queue_container_to_redraw(direction_container);
+  state
+    .pending_sync
+    .queue_container_to_redraw(direction_container);
 
   Ok(())
 }
@@ -44,8 +50,8 @@ fn toggle_window_stack(
     .direction_container()
     .context("No direction container.")?;
 
-  if let DirectionContainer::Stack(stack) = parent {
-    return exit_stack(stack, config);
+  if let DirectionContainer::Stack(stack) = &parent {
+    flatten_tiling_container(stack.as_tiling_container()?)?;
   }
 
   // Create a new split container to wrap the window.
@@ -135,18 +141,4 @@ pub fn wrap_in_stack_container(
   *stack_container.borrow_child_focus_order_mut() = sorted_focus_ids;
 
   Ok(())
-}
-
-fn exit_stack(
-  stack: StackContainer,
-  config: &UserConfig,
-) -> anyhow::Result<DirectionContainer> {
-  // Create a new split container to wrap the window.
-  let parent = stack
-    .parent()
-    .context("no parent?")?
-    .direction_container()
-    .context("not a direction container.")?;
-
-  flatten_tiling_container(stack.as_tiling_container()?)
 }

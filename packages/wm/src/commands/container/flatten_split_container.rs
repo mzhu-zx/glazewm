@@ -67,21 +67,26 @@ pub fn flatten_split_container(
   Ok(())
 }
 
+/// Removes a tiling container from the tree and moves its children
+/// into the parent container.
+///
+/// The children will be resized to fit the size of the split container.
+#[allow(clippy::needless_pass_by_value)]
 pub fn flatten_tiling_container(
   tiling_container: TilingContainer,
 ) -> anyhow::Result<DirectionContainer> {
   let parent = tiling_container.parent().context("No parent.")?;
   let in_stack = tiling_container.is_stack();
-  let stack_ratio = 1.0 / tiling_container.child_count() as f32;
 
   let updated_children =
     tiling_container.children().into_iter().inspect(|child| {
       *child.borrow_parent_mut() = Some(parent.clone());
-
       // Resize tiling children to fit the size of the split container.
       if let Ok(tiling_child) = child.as_tiling_container() {
         tiling_child.set_tiling_size(if in_stack {
-          tiling_container.tiling_size() * stack_ratio
+          #[allow(clippy::cast_precision_loss)]
+          let evenly = 1.0 / tiling_container.child_count() as f32;
+          tiling_container.tiling_size() * evenly
         } else {
           tiling_container.tiling_size() * tiling_child.tiling_size()
         });

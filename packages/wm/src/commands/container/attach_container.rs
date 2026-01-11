@@ -4,6 +4,7 @@ use anyhow::bail;
 
 use super::resize_tiling_container;
 use crate::{
+  commands::container::resize_stack_container,
   models::Container,
   traits::{CommonGetters, TilingSizeGetters},
 };
@@ -47,16 +48,14 @@ pub fn attach_container(
       return Ok(());
     }
 
-    let target_size = if target_parent.is_stack() {
-      1.0
+    if let Some(stack) = target_parent.as_stack() {
+      resize_stack_container(stack);
     } else {
-      1.0 / (tiling_siblings.len() + 1) as f32
-    };
-
-    // to the target size.
-    #[allow(clippy::cast_precision_loss)]
-    child.set_tiling_size(0.0);
-    resize_tiling_container(&child, target_size);
+      #[allow(clippy::cast_precision_loss)]
+      let target_size = 1.0 / (tiling_siblings.len() + 1) as f32;
+      child.set_tiling_size(0.0);
+      resize_tiling_container(&child, target_size);
+    }
   }
 
   Ok(())

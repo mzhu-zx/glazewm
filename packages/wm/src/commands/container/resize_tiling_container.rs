@@ -1,12 +1,19 @@
 use crate::{
-  models::TilingContainer,
-  traits::{CommonGetters, TilingSizeGetters, MIN_TILING_SIZE},
+  models::{StackContainer, TilingContainer},
+  traits::{CommonGetters, MIN_TILING_SIZE, STACK_HEADER_SIZE, TilingSizeGetters},
 };
 
 pub fn resize_tiling_container(
   container_to_resize: &TilingContainer,
   target_size: f32,
 ) {
+  if let Some(parent) = container_to_resize.parent() {
+    if let Some(stack) = parent.as_stack() {
+      resize_stack_container(stack);
+      return;
+    }
+  }
+
   let tiling_siblings =
     container_to_resize.tiling_siblings().collect::<Vec<_>>();
 
@@ -15,9 +22,6 @@ pub fn resize_tiling_container(
     container_to_resize.set_tiling_size(1.);
     return;
   }
-
-  let in_stack =
-    container_to_resize.parent().is_some_and(|p| p.is_stack());
 
   // Prevent the container from being smaller than the minimum size, and
   // larger than the space available from sibling containers.
@@ -29,13 +33,6 @@ pub fn resize_tiling_container(
 
   let size_delta = clamped_target_size - container_to_resize.tiling_size();
   container_to_resize.set_tiling_size(clamped_target_size);
-
-  if in_stack {
-    for sibling in &tiling_siblings {
-      sibling.set_tiling_size(MIN_TILING_SIZE);
-    }
-    return;
-  }
 
   // Get available tiling size amongst siblings.
   let available_size =
@@ -54,5 +51,17 @@ pub fn resize_tiling_container(
     let size_delta = resize_factor * size_delta;
 
     sibling.set_tiling_size(sibling.tiling_size() - size_delta);
+  }
+}
+
+pub fn resize_stack_container(container: &StackContainer) {
+  let children = container.children();
+  #[allow(clippy::cast_precision_loss)]
+  let header_size = STACK_HEADER_SIZE * (children.len() as f32);
+  let child_size = 1.0 - header_size;
+  for sibling in &children {
+    sibling
+      .as_tiling_window()
+      .inspect(|c| c.set_tiling_size(child_size));
   }
 }

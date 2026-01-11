@@ -1,0 +1,2 @@
+pub const MIN_TILING_SIZE: f32 = 0.01;
+pub const STACK_HEADER_SIZE: f32 = 2.0 * MIN_TILING_SIZE;

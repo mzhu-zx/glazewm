@@ -1,15 +1,14 @@
+use std::io::Split;
+
 use anyhow::Context;
 use wm_common::{Direction, Rect, TilingDirection, WindowState};
 
 use crate::{
   commands::container::{
-    flatten_child_split_containers, flatten_split_container,
-    move_container_within_tree, resize_tiling_container,
-    set_focused_descendant, wrap_in_split_container,
+    flatten_child_split_containers, flatten_split_container, flatten_tiling_container, move_container_within_tree, resize_tiling_container, set_focused_descendant, wrap_in_split_container
   },
   models::{
-    DirectionContainer, Monitor, NonTilingWindow, SplitContainer,
-    TilingContainer, TilingWindow, WindowContainer,
+    DirectionContainer, Monitor, NonTilingWindow, SplitContainer, StackContainer, TilingContainer, TilingWindow, WindowContainer
   },
   traits::{
     CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters,
@@ -54,12 +53,13 @@ fn move_tiling_window(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   // Flatten the parent split container if it only contains the window.
-  if let Some(split_parent) = window_to_move
+  if let Some(tiling_parent) = window_to_move
     .parent()
-    .and_then(|parent| parent.as_split().cloned())
+    .and_then(|w| w.as_tiling_container().ok())
   {
-    if split_parent.child_count() == 1 {
-      flatten_split_container(split_parent)?;
+    // flatten singleton split or stack on move.
+    if tiling_parent.child_count() == 1 {
+      flatten_tiling_container(tiling_parent)?;
     }
   }
 
@@ -201,6 +201,7 @@ fn move_to_sibling_container(
       }
     }
     TilingContainer::Stack(sibling_stack) => {
+      // TODO: merge with split container.
       let sibling_descendant =
         sibling_stack.descendant_in_direction(&direction.inverse());
 

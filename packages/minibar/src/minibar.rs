@@ -155,7 +155,7 @@ impl Minibar {
         if indicator.status.activated {
           solid_brush.SetColor(&color::D2D1_COLOR_AQUAMARINE);
         } else {
-          solid_brush.SetColor(&color::D2D1_COLOR_GRAY);
+          solid_brush.SetColor(&color::D2D1_COLOR_LIGHT_GRAY);
         }
 
         d2d_host
