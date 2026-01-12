@@ -1,4 +1,5 @@
 use std::{
+  iter,
   sync::{Arc, Mutex},
   time::Duration,
 };
@@ -8,11 +9,10 @@ use tokio::sync::mpsc::{self, Receiver, Sender};
 use tracing::{debug, warn};
 use uuid::Uuid;
 use wm_common::{
-  ClientResponseData, ContainerDto, MonitorDto, WmEvent, WorkspaceDto,
+  ClientResponseData, ContainerDto, MonitorDto, StackContainerDto,
+  WmEvent, WorkspaceDto,
 };
 use wm_ipc_client::IpcClient;
-
-use crate::monitor;
 
 #[derive(Debug)]
 pub struct WorkspaceStatus {
@@ -31,12 +31,27 @@ impl WorkspaceStatus {
   }
 }
 
-// subscribe to workspace events
-async fn start_watcher(tx_refresh: Sender<()>) {
-  tokio::spawn(async move { watcher_main(tx_refresh).await.unwrap() });
+#[derive(Debug)]
+pub struct WindowStatus {
+  pub title: String,
+  pub activated: bool,
+  pub id: Uuid,
 }
 
-async fn watcher_main(tx_refresh: Sender<()>) -> Result<()> {
+// subscribe to workspace events
+async fn start_watcher(ctx: ServiceContext) {
+  tokio::spawn(async move { watcher_main(ctx).await.unwrap() });
+}
+
+async fn watcher_main(
+  ServiceContext {
+    tx_refresh,
+    tx_repaint,
+    stack,
+    device_name,
+    ..
+  }: ServiceContext,
+) -> Result<()> {
   loop {
     let Ok(mut client) = IpcClient::connect().await else {
       warn!("cannot connect, retry in 5 seconds");
@@ -47,8 +62,7 @@ async fn watcher_main(tx_refresh: Sender<()>) -> Result<()> {
     // push the first event to trigger the initial update
     tx_refresh.send(()).await.context("tx_refresh")?;
 
-    let subscription_message =
-      "sub -e workspace_updated workspace_activated focus_changed";
+    let subscription_message = "sub -e workspace_updated workspace_activated focus_changed stack_focus_changed";
     client
       .send(subscription_message)
       .await
@@ -70,9 +84,36 @@ async fn watcher_main(tx_refresh: Sender<()>) -> Result<()> {
         .and_then(|event| event.data);
       match event_data {
         Some(WmEvent::WorkspaceActivated { .. })
-        | Some(WmEvent::WorkspaceUpdated { .. })
-        | Some(WmEvent::FocusChanged { .. }) => {
+        | Some(WmEvent::WorkspaceUpdated { .. }) => {
           tx_refresh.send(()).await?
+        }
+        Some(WmEvent::FocusChanged { focused_container }) => {
+          if let ContainerDto::Window(w) = focused_container {
+            let mut rec = stack.lock().unwrap();
+            if rec.id != w.parent_id {
+              debug!("{:?} != {:?}", rec.id, w.parent_id);
+              rec.clear();
+            }
+          }
+          tx_refresh.send(()).await?
+        }
+        Some(WmEvent::StackFocusChanged {
+          stack_container:
+            ContainerDto::Stack(StackContainerDto {
+              id,
+              children,
+              device_name: Some(d),
+              ..
+            }),
+        }) if d == device_name => {
+          debug!("stack focused!");
+          {
+            *stack.lock().unwrap() = StackRecord {
+              id: Some(id),
+              children,
+            }
+          }
+          tx_repaint.send(()).await?
         }
         None => {
           warn!("watcher ipc closed. try reconnect ...");
@@ -89,7 +130,7 @@ async fn watcher_main(tx_refresh: Sender<()>) -> Result<()> {
 
 async fn start_interpreter(
   mut rx_refresh: Receiver<()>,
-  tx_cmd: Sender<MinibarCommand>,
+  ServiceContext { tx_cmd, .. }: ServiceContext,
 ) {
   tokio::spawn(async move {
     interpreter_main(rx_refresh, tx_cmd).await.unwrap()
@@ -119,24 +160,20 @@ pub enum MinibarCommand {
 
 async fn start_cli(
   mut rx_cmd: Receiver<MinibarCommand>,
-  tx_repaint: Sender<()>,
-  device_name: String,
-  shared_workspaces: Arc<Mutex<Vec<WorkspaceDto>>>,
-  monitor: Arc<Mutex<Option<MonitorDto>>>,
+  ctx: ServiceContext,
 ) {
-  tokio::spawn(async move {
-    cli_main(rx_cmd, tx_repaint, device_name, shared_workspaces, monitor)
-      .await
-      .unwrap()
-  });
+  tokio::spawn(async move { cli_main(rx_cmd, ctx).await.unwrap() });
 }
 
 async fn cli_main(
   mut rx_cmd: Receiver<MinibarCommand>,
-  tx_repaint: Sender<()>,
-  device_name: String,
-  shared_workspaces: Arc<Mutex<Vec<WorkspaceDto>>>,
-  shared_monitor: Arc<Mutex<Option<MonitorDto>>>,
+  ServiceContext {
+    tx_repaint,
+    device_name,
+    workspaces: shared_workspaces,
+    monitor: shared_monitor,
+    ..
+  }: ServiceContext,
 ) -> Result<()> {
   loop {
     let Ok(mut client) = IpcClient::connect().await else {
@@ -260,30 +297,66 @@ pub struct GlazeWmService {
   rx_repaint: Option<mpsc::Receiver<()>>,
   workspaces: Arc<Mutex<Vec<WorkspaceDto>>>,
   monitor: Arc<Mutex<Option<MonitorDto>>>,
+  stack: Arc<Mutex<StackRecord>>,
+}
+
+struct StackRecord {
+  id: Option<Uuid>,
+  children: Vec<ContainerDto>,
+}
+
+impl StackRecord {
+  fn clear(&mut self) {
+    self.id = None;
+  }
+
+  fn windows(&self) -> Option<&Vec<ContainerDto>> {
+    self.id.map(|_| &self.children)
+  }
+}
+
+#[derive(Clone)]
+struct ServiceContext {
+  tx_refresh: Sender<()>,
+  tx_repaint: Sender<()>,
+  tx_cmd: Sender<MinibarCommand>,
+  workspaces: Arc<Mutex<Vec<WorkspaceDto>>>,
+  stack: Arc<Mutex<StackRecord>>,
+  monitor: Arc<Mutex<Option<MonitorDto>>>,
+  device_name: String,
 }
 
 impl GlazeWmService {
   pub async fn start(device_name: String) -> GlazeWmService {
     let workspaces = Arc::new(Mutex::new(vec![]));
+    let stack = Arc::new(Mutex::new(StackRecord {
+      id: None,
+      children: vec![],
+    }));
     let monitor = Arc::new(Mutex::new(None));
     let (tx_cmd, rx_cmd) = mpsc::channel::<MinibarCommand>(32);
     let (tx_refresh, rx_refresh) = mpsc::channel::<()>(32);
     let (tx_repaint, rx_repaint) = mpsc::channel::<()>(32);
-    start_cli(
-      rx_cmd,
-      tx_repaint.clone(),
-      device_name,
-      workspaces.clone(),
-      monitor.clone(),
-    )
-    .await;
-    start_watcher(tx_refresh).await;
-    start_interpreter(rx_refresh, tx_cmd.clone()).await;
+
+    let ctx = ServiceContext {
+      tx_refresh: tx_refresh.clone(),
+      tx_repaint: tx_repaint.clone(),
+      tx_cmd: tx_cmd.clone(),
+      workspaces: workspaces.clone(),
+      stack: stack.clone(),
+      device_name: device_name.clone(),
+      monitor: monitor.clone(),
+    };
+
+    start_cli(rx_cmd, ctx.clone()).await;
+    start_watcher(ctx.clone()).await;
+    start_interpreter(rx_refresh, ctx.clone()).await;
     GlazeWmService {
       tx_cmd,
       rx_repaint: Some(rx_repaint),
       workspaces,
       monitor,
+      stack,
     }
   }
 
@@ -295,7 +368,6 @@ impl GlazeWmService {
 
     self
       .workspaces
-      .clone()
       .lock()
       .unwrap()
       .iter()
@@ -307,6 +379,36 @@ impl GlazeWmService {
       })
       .collect()
   }
+
+  pub fn current_windows(&self) -> Vec<WindowStatus> {
+    fn truncate_title(src: &str) -> String {
+      let mut s = (src[..src.len().min(20)]).to_string();
+      if src.len() > 20 {
+        for _ in 0..3 {
+          s.pop();
+        }
+        s.push_str("...");
+      }
+      s
+    }
+
+    if let Some(w) = self.stack.lock().unwrap().windows() {
+      w.iter()
+        .filter_map(|c| match c {
+          ContainerDto::Window(w) => Some(w),
+          _ => None,
+        })
+        .map(|w| WindowStatus {
+          title: truncate_title(&w.title),
+          activated: w.has_focus,
+          id: w.id,
+        })
+        .collect()
+    } else {
+      vec![]
+    }
+  }
+
   pub fn send_command(&mut self, cmd: String) -> Result<()> {
     self.tx_cmd.blocking_send(MinibarCommand::Raw(cmd))?;
     Ok(())

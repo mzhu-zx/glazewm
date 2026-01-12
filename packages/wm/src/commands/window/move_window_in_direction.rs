@@ -1,14 +1,15 @@
-use std::io::Split;
-
 use anyhow::Context;
 use wm_common::{Direction, Rect, TilingDirection, WindowState};
 
 use crate::{
   commands::container::{
-    flatten_child_split_containers, flatten_split_container, flatten_tiling_container, move_container_within_tree, resize_tiling_container, set_focused_descendant, wrap_in_split_container
+    flatten_child_split_containers, flatten_tiling_container,
+    move_container_within_tree, resize_tiling_container,
+    set_focused_descendant, wrap_in_split_container,
   },
   models::{
-    DirectionContainer, Monitor, NonTilingWindow, SplitContainer, StackContainer, TilingContainer, TilingWindow, WindowContainer
+    DirectionContainer, Monitor, NonTilingWindow, SplitContainer,
+    TilingContainer, TilingWindow, WindowContainer,
   },
   traits::{
     CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters,

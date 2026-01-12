@@ -10,7 +10,7 @@ use wm_common::{
 use wm_platform::{Platform, ZOrder};
 
 use crate::{
-  models::{Container, StackContainer, WindowContainer},
+  models::{Container, WindowContainer},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -97,6 +97,12 @@ fn sync_focus(
     if let Err(err) = native_window.set_foreground() {
       warn!("Failed to set foreground window: {}", err);
     }
+  }
+
+  if let Some(Container::Stack(stack)) = focused_container.parent() {
+    state.emit_event(WmEvent::StackFocusChanged {
+      stack_container: stack.to_dto()?,
+    });
   }
 
   state.emit_event(WmEvent::FocusChanged {

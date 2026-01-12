@@ -1,5 +1,3 @@
-use std::arch::naked_asm;
-
 use anyhow::bail;
 
 use super::resize_tiling_container;

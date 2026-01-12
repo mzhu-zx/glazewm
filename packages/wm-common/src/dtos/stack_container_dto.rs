@@ -13,6 +13,7 @@ pub struct StackContainerDto {
   pub id: Uuid,
   pub parent_id: Option<Uuid>,
   pub children: Vec<ContainerDto>,
+  pub device_name: Option<String>,
   pub child_focus_order: Vec<Uuid>,
   pub has_focus: bool,
   pub tiling_size: f32,

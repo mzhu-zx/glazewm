@@ -18,6 +18,9 @@ pub enum WmEvent {
   BindingModesChanged {
     new_binding_modes: Vec<BindingModeConfig>,
   },
+  StackFocusChanged {
+    stack_container: ContainerDto,
+  },
   FocusChanged {
     focused_container: ContainerDto,
   },
@@ -37,9 +40,6 @@ pub enum WmEvent {
   TilingDirectionChanged {
     direction_container: ContainerDto,
     new_tiling_direction: TilingDirection,
-  },
-  StackToggled {
-    direction_container: ContainerDto,
   },
   UserConfigChanged {
     config_path: String,

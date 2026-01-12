@@ -1,19 +1,13 @@
 // #![windows_subsystem = "windows"]
 
-use anyhow::Result;
 use tracing::info;
-use windows::{
+use windows::
   Win32::{
-    Foundation::{GetLastError, LPARAM, RECT},
-    Graphics::Gdi::{
-      EnumDisplayMonitors, GetMonitorInfoA, GetMonitorInfoW, HDC,
-      HMONITOR, MONITORINFO, MONITORINFOEXA,
-    },
+    Foundation::GetLastError,
     System::LibraryLoader::{GetModuleFileNameW, GetModuleHandleW},
     UI::HiDpi::GetProcessDpiAwareness,
-  },
-  core::BOOL,
-};
+  }
+;
 
 use crate::{
   logging::init_logger,

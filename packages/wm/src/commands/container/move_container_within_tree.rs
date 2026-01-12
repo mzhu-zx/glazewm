@@ -44,9 +44,7 @@ pub fn move_container_within_tree(
       .shift_to_index(target_index, container_to_move.clone());
 
     if container_to_move.has_focus(None) {
-      state.emit_event(WmEvent::FocusedContainerMoved {
-        focused_container: container_to_move.to_dto()?,
-      });
+      emit_focused_container_moved_event(state, container_to_move)?;
     }
 
     return Ok(());
@@ -128,9 +126,7 @@ pub fn move_container_within_tree(
   }
 
   if container_to_move.has_focus(None) {
-    state.emit_event(WmEvent::FocusedContainerMoved {
-      focused_container: container_to_move.to_dto()?,
-    });
+    emit_focused_container_moved_event(state, container_to_move)?;
   }
 
   Ok(())
@@ -165,9 +161,7 @@ fn move_to_lowest_common_ancestor(
     .shift_to_index(original_focus_index, container_to_move.id());
 
   if container_to_move.has_focus(None) {
-    state.emit_event(WmEvent::FocusedContainerMoved {
-      focused_container: container_to_move.to_dto()?,
-    });
+    emit_focused_container_moved_event(state, container_to_move)?;
   }
 
   Ok(())
@@ -198,4 +192,20 @@ pub fn lowest_common_ancestor(
   }
 
   None
+}
+
+fn emit_focused_container_moved_event(
+  state: &WmState,
+  container_to_move: &Container,
+) -> anyhow::Result<()> {
+  if let Some(Container::Stack(stack)) = container_to_move.parent() {
+    state.emit_event(WmEvent::StackFocusChanged {
+      stack_container: stack.to_dto()?,
+    });
+  }
+
+  state.emit_event(WmEvent::FocusedContainerMoved {
+    focused_container: container_to_move.to_dto()?,
+  });
+  Ok(())
 }

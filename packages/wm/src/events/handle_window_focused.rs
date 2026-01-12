@@ -8,7 +8,7 @@ use crate::{
     container::set_focused_descendant, window::run_window_rules,
     workspace::focus_workspace,
   },
-  models::WorkspaceTarget,
+  models::{Container, WorkspaceTarget},
   traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -96,6 +96,11 @@ pub fn handle_window_focused(
     state.pending_sync.queue_workspace_to_reorder(workspace);
 
     // Broadcast the focus change event.
+    if let Some(Container::Stack(stack)) = focused_container.parent() {
+      state.emit_event(WmEvent::StackFocusChanged {
+        stack_container: stack.to_dto()?,
+      });
+    }
     state.emit_event(WmEvent::FocusChanged {
       focused_container: window.to_dto()?,
     });

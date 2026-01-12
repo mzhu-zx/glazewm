@@ -4,7 +4,7 @@ use anyhow::Context;
 
 use crate::{
   models::{
-    DirectionContainer, SplitContainer, StackContainer, TilingContainer,
+    DirectionContainer, SplitContainer, TilingContainer,
   },
   traits::{CommonGetters, TilingSizeGetters},
 };

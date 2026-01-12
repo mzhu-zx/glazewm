@@ -357,6 +357,7 @@ impl IpcServer {
         SubscribableEvent::BindingModesChanged
       }
       WmEvent::FocusChanged { .. } => SubscribableEvent::FocusChanged,
+      WmEvent::StackFocusChanged { .. } => SubscribableEvent::StackFocusChanged,
       WmEvent::FocusedContainerMoved { .. } => {
         SubscribableEvent::FocusedContainerMoved
       }
@@ -365,9 +366,6 @@ impl IpcServer {
       WmEvent::MonitorRemoved { .. } => SubscribableEvent::MonitorRemoved,
       WmEvent::TilingDirectionChanged { .. } => {
         SubscribableEvent::TilingDirectionChanged
-      }
-      WmEvent::StackToggled { .. } => {
-        SubscribableEvent::StackToggled
       }
       WmEvent::UserConfigChanged { .. } => {
         SubscribableEvent::UserConfigChanged

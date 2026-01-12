@@ -14,7 +14,7 @@ use windows_numerics::Vector2;
 use crate::{
   color,
   d2d::{self, D2DHost},
-  watcher::{self, GlazeWmService, WorkspaceStatus},
+  watcher::{self, GlazeWmService, WindowStatus, WorkspaceStatus},
 };
 
 pub struct Config {
@@ -23,64 +23,82 @@ pub struct Config {
 }
 
 #[derive(Debug)]
-struct Indicator {
+struct Clickable<T> {
   /// Location of the indicator
   pub location: D2D_RECT_F,
-  pub status: WorkspaceStatus,
+  pub status: T,
 }
 
-impl Indicator {
+// pub status: WorkspaceStatus,
+
+impl<T> Clickable<T> {
   fn hit_test(&self, pt: Vector2) -> bool {
     (self.location.left <= pt.X)
       && (pt.X <= self.location.right)
       && (self.location.top <= pt.Y)
       && (pt.Y <= self.location.bottom)
   }
+
+  fn wrap_default(status: T) -> Self {
+    Clickable {
+      location: Default::default(),
+      status,
+    }
+  }
 }
+
+type WorkspaceButton = Clickable<WorkspaceStatus>;
+type WindowButton = Clickable<WindowStatus>;
 
 pub struct Minibar {
   pub config: Config,
-  // pub form_factor: Rect,
-  ws_indicators: Vec<Indicator>,
+  ws_buttons: Vec<WorkspaceButton>,
+  win_buttons: Vec<WindowButton>,
   glazewm: GlazeWmService,
 }
 
 impl Minibar {
   pub fn new(config: Config, glazewm: GlazeWmService) -> Self {
-    let ws_indicators = glazewm
+    let ws_buttons = glazewm
       .current_workspaces()
       .into_iter()
-      .map(|status| Indicator {
-        location: Default::default(),
-        status,
-      })
+      .map(Clickable::wrap_default)
+      .collect();
+    let win_buttons = glazewm
+      .current_windows()
+      .into_iter()
+      .map(Clickable::wrap_default)
       .collect();
     let ret = Self {
       config,
-      ws_indicators,
+      ws_buttons,
+      win_buttons,
       glazewm,
     };
     ret
   }
 
-  fn update_workspace(&mut self, d2d_host: &D2DHost) {
-    let ws_indicators = self
+  fn update_state(&mut self) {
+    self.ws_buttons = self
       .glazewm
       .current_workspaces()
       .into_iter()
-      .map(|status| Indicator {
-        location: Default::default(),
-        status,
-      })
+      .map(Clickable::wrap_default)
       .collect();
-    self.ws_indicators = ws_indicators;
-    debug!("new indicators: {:?}", self.ws_indicators);
+    self.win_buttons = self
+      .glazewm
+      .current_windows()
+      .into_iter()
+      .map(Clickable::wrap_default)
+      .collect();
+    debug!("new ws: {:?}", self.ws_buttons);
+    debug!("new wins: {:?}", self.win_buttons);
   }
 }
 
 impl Minibar {
   pub fn on_paint_d2d(&mut self, d2d_host: &D2DHost) -> Result<()> {
-    self.update_workspace(d2d_host);
+    self.update_state();
 
     debug!("paint");
 
@@ -106,7 +124,8 @@ impl Minibar {
 
     let mut x = self.config.bar_height as f32;
 
-    for indicator in self.ws_indicators.iter_mut() {
+    // paint ws indicator L2R
+    for indicator in self.ws_buttons.iter_mut() {
       // compute the layout
       let ws_name =
         U16CString::from_str_truncate(indicator.status.fullname());
@@ -179,12 +198,88 @@ impl Minibar {
       }
     }
 
+
+    let mut x = rt_size.width - self.config.bar_height as f32;
+
+    // paint window indicators RtoL
+    for indicator in self.win_buttons.iter_mut().rev() {
+      // compute the layout
+      let ws_name =
+        U16CString::from_str_truncate(&indicator.status.title);
+      let layout = unsafe {
+        d2d_host.dwrite_factory.CreateTextLayout(
+          ws_name.as_ref(),
+          &d2d_host.font,
+          f32::MAX,
+          f32::MAX,
+        )
+      }?;
+
+      let metrics: DWRITE_TEXT_METRICS = {
+        let mut it = Default::default();
+        unsafe { layout.GetMetrics(&mut it) }?;
+        it
+      };
+
+      let box_pad = 5.0;
+      let box_w = 2.0 * box_pad + metrics.widthIncludingTrailingWhitespace;
+      let left = x - box_w;
+      let v_centered = Vector2 {
+        X: x - box_w + box_pad,
+        Y: self.config.bar_height as f32 / 2.0 - metrics.height / 2.0,
+      };
+      let top = self.config.pad_size as f32;
+      let box_h =
+        (self.config.bar_height - 2 * self.config.pad_size) as f32;
+
+      let right = x;
+      let bottom = top + box_h;
+
+      x = left - self.config.pad_size as f32;
+
+      indicator.location = {
+        D2D_RECT_F {
+          left,
+          top,
+          right,
+          bottom,
+        }
+      };
+
+      unsafe {
+        if indicator.status.activated {
+          solid_brush.SetColor(&color::D2D1_COLOR_AQUAMARINE);
+        } else {
+          solid_brush.SetColor(&color::D2D1_COLOR_LIGHT_GRAY);
+        }
+
+        d2d_host
+          .render_target
+          .FillRectangle(&indicator.location, &solid_brush);
+        solid_brush.SetColor(&color::D2D1_COLOR_BLACK);
+
+        // paint border
+        d2d_host.render_target.DrawRectangle(
+          &indicator.location,
+          &solid_brush,
+          1.0,
+          None,
+        );
+        d2d_host.render_target.DrawTextLayout(
+          v_centered,
+          &layout,
+          &solid_brush,
+          D2D1_DRAW_TEXT_OPTIONS_NONE,
+        );
+      }
+    }
+
     Ok(())
   }
 
   // implement click actions here
   pub fn on_click(&mut self, x: u16, y: u16) -> Result<()> {
-    if let Some(found) = self.ws_indicators.iter().find(|i| {
+    if let Some(found) = self.ws_buttons.iter().find(|i| {
       i.hit_test(Vector2 {
         X: x as _,
         Y: y as _,
@@ -195,12 +290,29 @@ impl Minibar {
         "command focus --workspace {}",
         found.status.name
       ))?;
+      return Ok(());
     }
+
+    if let Some(found) = self.win_buttons.iter().find(|i| {
+      i.hit_test(Vector2 {
+        X: x as _,
+        Y: y as _,
+      })
+    }) {
+      info!("hit! ({:?})", found);
+      self.glazewm.send_command(format!(
+        "command focus --container-id {}",
+        found.status.id
+      ))?;
+      return Ok(());
+    }
+
+
     Ok(())
   }
 
-  // implement hover effect here
-  pub fn on_move() {}
+  // // implement hover effect here
+  // pub fn on_move() {}
 
   pub fn on_create(
     &mut self,

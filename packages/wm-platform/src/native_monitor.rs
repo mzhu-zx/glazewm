@@ -132,7 +132,9 @@ impl NativeMonitor {
           (Some(device_path), hardware_id)
         });
 
-      let device_name = String::from_utf16_lossy(&monitor_info.szDevice);
+      let device_name = String::from_utf16_lossy(&monitor_info.szDevice)
+        .trim_end_matches('\0')
+        .to_string();
       let dpi = monitor_dpi(self.handle)?;
       #[allow(clippy::cast_precision_loss)]
       let scale_factor = dpi as f32 / 96.0;

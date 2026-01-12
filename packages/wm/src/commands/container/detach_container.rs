@@ -1,6 +1,5 @@
 use anyhow::Context;
 
-use super::flatten_split_container;
 use crate::{
   commands::container::flatten_tiling_container,
   models::Container,

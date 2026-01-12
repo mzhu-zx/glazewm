@@ -3,8 +3,8 @@ use windows::{
   Win32::{
     Foundation::{LPARAM, RECT},
     Graphics::Gdi::{
-      EnumDisplayMonitors, GetMonitorInfoA, HDC,
-      HMONITOR, MONITORINFO, MONITORINFOEXA,
+      EnumDisplayMonitors, GetMonitorInfoA, HDC, HMONITOR, MONITORINFO,
+      MONITORINFOEXA,
     },
   },
   core::BOOL,
@@ -35,8 +35,9 @@ unsafe extern "system" fn monitor_enum_proc(
         .as_ref()
         .unwrap(),
     )
-  }
-  .to_string();
+    .trim_end_matches('\0')
+    .to_string()
+  };
 
   if let Some(mon) = unsafe { lprc_monitor.as_ref() } {
     rects.push(MonitorInfo {

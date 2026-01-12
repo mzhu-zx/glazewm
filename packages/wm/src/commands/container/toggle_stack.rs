@@ -5,7 +5,7 @@
 use std::collections::VecDeque;
 
 use anyhow::Context;
-use wm_common::{TilingDirection, WmEvent};
+use wm_common::TilingDirection;
 
 use crate::{
   commands::container::flatten_tiling_container,
@@ -13,7 +13,7 @@ use crate::{
     Container, DirectionContainer, StackContainer, TilingContainer,
     TilingWindow,
   },
-  traits::{CommonGetters, TilingDirectionGetters, TilingSizeGetters},
+  traits::{CommonGetters, TilingSizeGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -31,10 +31,6 @@ pub fn toggle_stack(
     _ => return Ok(()),
   }?;
 
-  state.emit_event(WmEvent::StackToggled {
-    direction_container: direction_container.to_dto()?,
-  });
-
   state
     .pending_sync
     .queue_container_to_redraw(direction_container);
@@ -51,7 +47,7 @@ fn toggle_window_stack(
     .context("No direction container.")?;
 
   if let DirectionContainer::Stack(stack) = &parent {
-    flatten_tiling_container(stack.as_tiling_container()?)?;
+    return flatten_tiling_container(stack.as_tiling_container()?);
   }
 
   // Create a new split container to wrap the window.
