@@ -221,19 +221,34 @@ fn redraw_containers(
         ZOrder::TopMost
       }
       _ if should_bring_to_front => {
-        let focused_descendant = workspace
-          .descendant_focus_order()
-          .next()
-          .and_then(|container| container.as_window_container().ok());
-
-        if let Some(focused_descendant) = focused_descendant {
-          if window.id() == focused_descendant.id() {
-            ZOrder::Normal
+        dbg!(window.native().handle);
+        if window.parent().is_some_and(|p| p.is_stack()) {
+          let w_id = window.id();
+          let below = window
+            .child_focus_order()
+            .take_while(|u| u.id() != w_id)
+            .last();
+          if let Some(c) = below.and_then(|c| c.as_window_container().ok())
+          {
+            ZOrder::AfterWindow(dbg!(c.native().handle))
           } else {
-            ZOrder::AfterWindow(focused_descendant.native().handle)
+            ZOrder::Normal
           }
         } else {
-          ZOrder::Normal
+          let focused_descendant = workspace
+            .descendant_focus_order()
+            .next()
+            .and_then(|container| container.as_window_container().ok());
+
+          if let Some(focused_descendant) = focused_descendant {
+            if dbg!(window.id() == focused_descendant.id()) {
+              ZOrder::Normal
+            } else {
+              ZOrder::AfterWindow(dbg!(focused_descendant.native().handle))
+            }
+          } else {
+            ZOrder::Normal
+          }
         }
       }
       _ => ZOrder::Normal,
