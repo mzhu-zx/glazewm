@@ -13,8 +13,8 @@ use windows_numerics::Vector2;
 
 use crate::{
   color,
-  d2d::{self, D2DHost},
-  watcher::{self, GlazeWmService, WindowStatus, WorkspaceStatus},
+  d2d::D2DHost,
+  watcher::{GlazeWmService, WindowStatus, WorkspaceStatus},
 };
 
 pub struct Config {
@@ -69,13 +69,13 @@ impl Minibar {
       .into_iter()
       .map(Clickable::wrap_default)
       .collect();
-    let ret = Self {
+
+    Self {
       config,
       ws_buttons,
       win_buttons,
       glazewm,
-    };
-    ret
+    }
   }
 
   fn update_state(&mut self) {
@@ -93,6 +93,10 @@ impl Minibar {
       .collect();
     debug!("new ws: {:?}", self.ws_buttons);
     debug!("new wins: {:?}", self.win_buttons);
+  }
+
+  pub fn shutdown(self) {
+    self.glazewm.stop()
   }
 }
 
@@ -316,7 +320,7 @@ impl Minibar {
 
   pub fn on_create(
     &mut self,
-    tid: u32,
+    _tid: u32,
     hwnd: HWND, /* tid: u32 */
   ) -> Result<()> {
     let mut rx = self

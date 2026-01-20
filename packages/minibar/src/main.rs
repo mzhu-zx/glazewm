@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::{thread, time::Duration};
+
 use tracing::info;
 use windows::Win32::{
   Foundation::GetLastError,
@@ -43,25 +45,33 @@ async fn main() {
 
   info!("module: {}", name);
 
-  let monitors = enum_monitor_infos().unwrap();
-  let mut handles = vec![];
-  for monitor in monitors {
-    let glazewm = GlazeWmService::start(monitor.dev_name.clone()).await;
-    let minibar = Minibar::new(
-      Config {
-        bar_height: 30,
-        pad_size: 5,
-      },
-      glazewm,
-    );
+  let mut cnt = 0;
+  loop {
+    cnt += 1;
+    println!("generation: {}", cnt);
+    let monitors = enum_monitor_infos().unwrap();
+    let mut handles = vec![];
+    for monitor in monitors {
+      let glazewm = GlazeWmService::start(monitor.dev_name.clone()).await;
+      let minibar = Minibar::new(
+        Config {
+          bar_height: 30,
+          pad_size: 5,
+        },
+        glazewm,
+      );
 
-    let handle = std::thread::spawn(move || {
-      window::Window::<minibar::Minibar>::create(monitor, minibar)
-        .start_message_loop();
-    });
-    handles.push(handle);
+      let handle = std::thread::spawn(move || {
+        let minibar =
+          window::Window::<minibar::Minibar>::create(monitor, minibar)
+            .start_message_loop();
+        minibar.shutdown();
+      });
+      handles.push(handle);
+    }
+    handles.into_iter().for_each(|x| x.join().unwrap());
+
+    thread::sleep(Duration::from_secs(1));
   }
-  handles.into_iter().for_each(|x| x.join().unwrap());
-
   info!("done");
 }

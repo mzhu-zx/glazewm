@@ -1,14 +1,14 @@
-use anyhow::{Context, Result, anyhow, ensure};
-use tracing::{debug, info};
-use windows::{
+use anyhow::Result;
+use tracing::debug;
+use windows::
   Win32::{
-    Foundation::{HWND, LPARAM, LRESULT, RECT, WPARAM},
+    Foundation::{HWND, RECT},
     Graphics::{
       Direct2D::{
         Common::D2D_SIZE_U, D2D1_FACTORY_TYPE_SINGLE_THREADED,
         D2D1_HWND_RENDER_TARGET_PROPERTIES, D2D1_RENDER_TARGET_PROPERTIES,
         D2D1_RENDER_TARGET_TYPE_SOFTWARE, D2D1CreateFactory, ID2D1Factory,
-        ID2D1HwndRenderTarget, ID2D1RenderTarget,
+        ID2D1HwndRenderTarget,
       },
       DirectWrite::{
         DWRITE_FACTORY_TYPE_SHARED, DWRITE_FONT_STRETCH_NORMAL,
@@ -18,10 +18,9 @@ use windows::{
         IDWriteFontCollection, IDWriteTextFormat,
       },
     },
-    UI::WindowsAndMessaging::{GetClientRect, GetWindowRect},
-  },
-  core::Interface,
-};
+    UI::WindowsAndMessaging::GetWindowRect,
+  }
+;
 
 pub struct D2DHost {
   pub d2d_factory: ID2D1Factory,

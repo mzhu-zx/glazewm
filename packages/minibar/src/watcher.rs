@@ -5,7 +5,11 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use tokio::{
+  runtime::Handle,
+  sync::mpsc::{self, Receiver, Sender},
+  task::JoinHandle,
+};
 use tracing::{debug, warn};
 use uuid::Uuid;
 use wm_common::{
@@ -39,8 +43,8 @@ pub struct WindowStatus {
 }
 
 // subscribe to workspace events
-async fn start_watcher(ctx: ServiceContext) {
-  tokio::spawn(async move { watcher_main(ctx).await.unwrap() });
+async fn start_watcher(ctx: ServiceContext) -> JoinHandle<()> {
+  tokio::spawn(async move { watcher_main(ctx).await.unwrap() })
 }
 
 async fn watcher_main(
@@ -129,12 +133,12 @@ async fn watcher_main(
 }
 
 async fn start_interpreter(
-  mut rx_refresh: Receiver<()>,
+  rx_refresh: Receiver<()>,
   ServiceContext { tx_cmd, .. }: ServiceContext,
-) {
+) -> JoinHandle<()> {
   tokio::spawn(async move {
     interpreter_main(rx_refresh, tx_cmd).await.unwrap()
-  });
+  })
 }
 
 async fn interpreter_main(
@@ -161,8 +165,8 @@ pub enum MinibarCommand {
 async fn start_cli(
   mut rx_cmd: Receiver<MinibarCommand>,
   ctx: ServiceContext,
-) {
-  tokio::spawn(async move { cli_main(rx_cmd, ctx).await.unwrap() });
+) -> JoinHandle<()> {
+  tokio::spawn(async move { cli_main(rx_cmd, ctx).await.unwrap() })
 }
 
 async fn cli_main(
@@ -298,6 +302,7 @@ pub struct GlazeWmService {
   workspaces: Arc<Mutex<Vec<WorkspaceDto>>>,
   monitor: Arc<Mutex<Option<MonitorDto>>>,
   stack: Arc<Mutex<StackRecord>>,
+  handles: Vec<JoinHandle<()>>,
 }
 
 struct StackRecord {
@@ -348,15 +353,23 @@ impl GlazeWmService {
       monitor: monitor.clone(),
     };
 
-    start_cli(rx_cmd, ctx.clone()).await;
-    start_watcher(ctx.clone()).await;
-    start_interpreter(rx_refresh, ctx.clone()).await;
+    let cli = start_cli(rx_cmd, ctx.clone()).await;
+    let watcher = start_watcher(ctx.clone()).await;
+    let interpreter = start_interpreter(rx_refresh, ctx.clone()).await;
+
     GlazeWmService {
       tx_cmd,
       rx_repaint: Some(rx_repaint),
       workspaces,
       monitor,
       stack,
+      handles: vec![cli, watcher, interpreter],
+    }
+  }
+
+  pub fn stop(self) {
+    for handle in self.handles {
+      handle.abort();
     }
   }
 

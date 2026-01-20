@@ -86,7 +86,7 @@ impl StackContainer {
         .borrow()
         .switch_provider
         .as_ref()
-        .map(|s| s.id()),
+        .map(CommonGetters::id),
     }))
   }
 }

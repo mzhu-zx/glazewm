@@ -22,14 +22,13 @@ use windows::{
         APPBARDATA, SHAppBarMessage,
       },
       WindowsAndMessaging::{
-        CREATESTRUCTW, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW,
+        CREATESTRUCTW, CreateWindowExW, DefWindowProcW, DestroyWindow,
         DispatchMessageW, GWL_STYLE, GWLP_USERDATA, GetMessageW,
-        GetSystemMetrics, GetWindowLongPtrW, IDC_ARROW, LoadCursorA, MSG,
-        MoveWindow, PostQuitMessage, RegisterClassW, SM_CXSCREEN,
-        SW_NORMAL, SetWindowLongPtrW, SetWindowLongW, ShowWindow,
-        TranslateMessage, WINDOW_EX_STYLE, WM_CREATE, WM_DESTROY,
-        WM_LBUTTONDOWN, WM_NCCREATE, WM_NCPAINT, WM_PAINT, WM_SIZE,
-        WNDCLASSW, WS_POPUP,
+        GetWindowLongPtrW, IDC_ARROW, LoadCursorA, MSG, MoveWindow,
+        PostQuitMessage, RegisterClassW, SW_NORMAL, SetWindowLongPtrW,
+        SetWindowLongW, ShowWindow, TranslateMessage, WINDOW_EX_STYLE,
+        WM_CREATE, WM_DESTROY, WM_DISPLAYCHANGE, WM_LBUTTONDOWN,
+        WM_NCCREATE, WM_PAINT, WM_SIZE, WNDCLASSW, WS_POPUP,
       },
     },
   },
@@ -37,9 +36,7 @@ use windows::{
 };
 use windows_numerics::Matrix3x2;
 
-// use crate::compositor::CompositionHost;
-use crate::{minibar::Minibar, monitor::MonitorInfo};
-use crate::{color, d2d::D2DHost, minibar};
+use crate::{color, d2d::D2DHost, minibar::Minibar, monitor::MonitorInfo};
 
 static REGISTER_MAIN_WINDOW_CLASS: Once = Once::new();
 
@@ -48,11 +45,12 @@ pub struct Window<State> {
   state: State,
   d2d_host: Option<D2DHost>,
   monitor: MonitorInfo,
+  appbar_magic: u32,
 }
 
 impl<T> Window<T> {
   /// Show the window and start the message pump.
-  pub fn start_message_loop(self) {
+  pub fn start_message_loop(self) -> T {
     let _ = unsafe { ShowWindow(self.hwnd, SW_NORMAL) };
 
     let mut msg: MSG = Default::default();
@@ -72,6 +70,8 @@ impl<T> Window<T> {
         DispatchMessageW(&msg);
       };
     }
+
+    self.state
   }
 }
 
@@ -90,9 +90,10 @@ impl Window<Minibar> {
           let create_struct = lparam.0 as *mut CREATESTRUCTW;
           let window = (*create_struct).lpCreateParams as *mut Self;
           (*window).hwnd = hwnd;
-          create_appbar(hwnd, 30, (*window).monitor.rect)
+          let magic = create_appbar(hwnd, 30, (*window).monitor.rect)
             .context("make app bar")
             .unwrap();
+          (*window).appbar_magic = magic;
           SetWindowLongPtrW(hwnd, GWLP_USERDATA, window as isize);
           window
         }
@@ -118,7 +119,7 @@ impl Window<Minibar> {
           }
           Err(err) => {
             eprintln!("[{}] error in event loop: {}", umsg, err);
-            return LRESULT(-1);
+            LRESULT(-1)
           }
         }
       } else {
@@ -131,7 +132,7 @@ impl Window<Minibar> {
   fn handle_message(
     &mut self,
     umsg: u32,
-    wparam: WPARAM,
+    _wparam: WPARAM,
     lparam: LPARAM,
   ) -> Result<bool> {
     // debug!("{:#X}", umsg);
@@ -160,7 +161,7 @@ impl Window<Minibar> {
       WM_PAINT => {
         debug!("WM_PAINT!");
         let mut ps: PAINTSTRUCT = Default::default();
-        let hdc = unsafe { BeginPaint(self.hwnd, &mut ps) };
+        let _hdc = unsafe { BeginPaint(self.hwnd, &mut ps) };
         if let Some(d2d_host) = self.d2d_host.as_ref() {
           let rt = &d2d_host.render_target;
           unsafe {
@@ -183,7 +184,35 @@ impl Window<Minibar> {
         debug!("click: ({}, {})", x, y);
         self.state.on_click(x, y)?;
       }
+      WM_DISPLAYCHANGE => {
+        unsafe { DestroyWindow(self.hwnd)? };
+        // if let Some(new_monitor) = self.monitor.update_monitor_info() {
+        //   unsafe {
+        //     info!(
+        //       "change display to {:?}",
+        //       RECT {
+        //         left: new_monitor.rect.left,
+        //         top: new_monitor.rect.top,
+        //         right: new_monitor.rect.right,
+        //         bottom: new_monitor.rect.top
+        //           + self.state.config.bar_height,
+        //       }
+        //     );
+        //     MoveWindow(
+        //       self.hwnd,
+        //       new_monitor.rect.left,
+        //       new_monitor.rect.top,
+        //       new_monitor.rect.right - new_monitor.rect.left,
+        //       self.state.config.bar_height,
+        //       true,
+        //     )?
+        //   }
+        // } else {
+        //   info!("i should have destroy the window now ({:?})",
+        // &self.hwnd); }
+      }
       WM_DESTROY => {
+        self.remove_appbar();
         unsafe { PostQuitMessage(0) };
       }
       _ => return Ok(false),
@@ -218,6 +247,7 @@ impl Window<Minibar> {
       hwnd: Default::default(),
       d2d_host: None,
       monitor,
+      appbar_magic: 0,
     });
 
     let hwnd = unsafe {
@@ -245,6 +275,18 @@ impl Window<Minibar> {
     // }
     boxed
   }
+
+  fn remove_appbar(&self) {
+    unsafe {
+      let mut data = APPBARDATA {
+        cbSize: std::mem::size_of::<APPBARDATA>() as u32,
+        hWnd: self.hwnd,
+        uCallbackMessage: self.appbar_magic,
+        ..Default::default()
+      };
+      SHAppBarMessage(ABM_REMOVE, &mut data);
+    };
+  }
 }
 
 static GLOBAL_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -254,11 +296,11 @@ fn create_appbar(
   app_hwnd: HWND,
   bar_height: i32,
   rect: RECT,
-) -> Result<()> {
+) -> Result<u32> {
   let magic = MINIBAR_MAGIC_NUMBER
     + GLOBAL_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
       as u32;
-  let uret = unsafe {
+  let _ = unsafe {
     let mut data = APPBARDATA {
       cbSize: std::mem::size_of::<APPBARDATA>() as u32,
       hWnd: app_hwnd,
@@ -295,20 +337,8 @@ fn create_appbar(
       false,
     )?
   }
-  Ok(())
+  Ok(magic)
 }
-
-// fn remove(app_hwnd: HWND) {
-//   let uret = unsafe {
-//     let mut data = APPBARDATA {
-//       cbSize: std::mem::size_of::<APPBARDATA>() as u32,
-//       hWnd: app_hwnd,
-//       uCallbackMessage: MINIBAR_MAGIC_NUMBER,
-//       ..Default::default()
-//     };
-//     SHAppBarMessage(ABM_REMOVE, &mut data);
-//   };
-// }
 
 /// LOWORD is X
 /// HIWORD is Y
