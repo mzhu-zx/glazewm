@@ -1,13 +1,11 @@
-// #![windows_subsystem = "windows"]
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use tracing::info;
-use windows::
-  Win32::{
-    Foundation::GetLastError,
-    System::LibraryLoader::{GetModuleFileNameW, GetModuleHandleW},
-    UI::HiDpi::GetProcessDpiAwareness,
-  }
-;
+use windows::Win32::{
+  Foundation::GetLastError,
+  System::LibraryLoader::{GetModuleFileNameW, GetModuleHandleW},
+  UI::HiDpi::GetProcessDpiAwareness,
+};
 
 use crate::{
   logging::init_logger,
