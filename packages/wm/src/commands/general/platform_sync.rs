@@ -221,7 +221,6 @@ fn redraw_containers(
         ZOrder::TopMost
       }
       _ if should_bring_to_front => {
-        dbg!(window.native().handle);
         if window.parent().is_some_and(|p| p.is_stack()) {
           let w_id = window.id();
           let below = window
@@ -230,7 +229,7 @@ fn redraw_containers(
             .last();
           if let Some(c) = below.and_then(|c| c.as_window_container().ok())
           {
-            ZOrder::AfterWindow(dbg!(c.native().handle))
+            ZOrder::AfterWindow(c.native().handle)
           } else {
             ZOrder::Normal
           }
@@ -241,10 +240,10 @@ fn redraw_containers(
             .and_then(|container| container.as_window_container().ok());
 
           if let Some(focused_descendant) = focused_descendant {
-            if dbg!(window.id() == focused_descendant.id()) {
+            if window.id() == focused_descendant.id() {
               ZOrder::Normal
             } else {
-              ZOrder::AfterWindow(dbg!(focused_descendant.native().handle))
+              ZOrder::AfterWindow(focused_descendant.native().handle)
             }
           } else {
             ZOrder::Normal
