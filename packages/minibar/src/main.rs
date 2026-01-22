@@ -1,10 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{thread, time::Duration};
+use std::{process, thread, time::Duration};
 
 use tracing::info;
 use windows::Win32::{
-  Foundation::GetLastError,
+  Foundation::{CloseHandle, GetLastError},
   System::LibraryLoader::{GetModuleFileNameW, GetModuleHandleW},
   UI::HiDpi::GetProcessDpiAwareness,
 };
@@ -13,6 +13,7 @@ use crate::{
   logging::init_logger,
   minibar::{Config, Minibar},
   monitor::enum_monitor_infos,
+  wait::check_instance,
   watcher::GlazeWmService,
 };
 
@@ -22,12 +23,20 @@ mod d2d;
 mod logging;
 mod minibar;
 mod monitor;
+mod wait;
 mod watcher;
 mod window;
 
 #[tokio::main]
 async fn main() {
   init_logger();
+
+  let _handle = check_instance()
+    .inspect_err(|e| {
+      eprintln!("check_instance: {:?}", e);
+      process::exit(-1);
+    })
+    .unwrap();
 
   let dpi_awareness = unsafe { GetProcessDpiAwareness(None) }.unwrap();
   info!("dpi awareness: {:?}", dpi_awareness);
@@ -73,5 +82,4 @@ async fn main() {
 
     thread::sleep(Duration::from_secs(1));
   }
-  info!("done");
 }

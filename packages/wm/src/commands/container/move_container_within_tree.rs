@@ -198,11 +198,11 @@ fn emit_focused_container_moved_event(
   state: &WmState,
   container_to_move: &Container,
 ) -> anyhow::Result<()> {
-  if let Some(Container::Stack(stack)) = container_to_move.parent() {
-    state.emit_event(WmEvent::StackFocusChanged {
-      stack_container: stack.to_dto()?,
-    });
-  }
+  // if let Some(Container::Stack(stack)) = container_to_move.parent() {
+  //   state.emit_event(WmEvent::StackFocusChanged {
+  //     stack_container: stack.to_dto()?,
+  //   });
+  // }
 
   state.emit_event(WmEvent::FocusedContainerMoved {
     focused_container: container_to_move.to_dto()?,

@@ -22,13 +22,7 @@ use windows::{
         APPBARDATA, SHAppBarMessage,
       },
       WindowsAndMessaging::{
-        CREATESTRUCTW, CreateWindowExW, DefWindowProcW, DestroyWindow,
-        DispatchMessageW, GWL_STYLE, GWLP_USERDATA, GetMessageW,
-        GetWindowLongPtrW, IDC_ARROW, LoadCursorA, MSG, MoveWindow,
-        PostQuitMessage, RegisterClassW, SW_NORMAL, SetWindowLongPtrW,
-        SetWindowLongW, ShowWindow, TranslateMessage, WINDOW_EX_STYLE,
-        WM_CREATE, WM_DESTROY, WM_DISPLAYCHANGE, WM_LBUTTONDOWN,
-        WM_NCCREATE, WM_PAINT, WM_SIZE, WNDCLASSW, WS_POPUP,
+        CREATESTRUCTW, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GWL_STYLE, GWLP_USERDATA, GetMessageW, GetWindowLongPtrW, IDC_ARROW, LoadCursorA, MSG, MoveWindow, PostQuitMessage, RegisterClassW, SW_NORMAL, SetWindowLongPtrW, SetWindowLongW, ShowWindow, TranslateMessage, WINDOW_EX_STYLE, WM_CREATE, WM_DESTROY, WM_DISPLAYCHANGE, WM_LBUTTONDOWN, WM_NCCREATE, WM_PAINT, WM_SIZE, WNDCLASSW, WS_EX_TOOLWINDOW, WS_POPUP
       },
     },
   },
@@ -252,7 +246,7 @@ impl Window<Minibar> {
 
     let hwnd = unsafe {
       CreateWindowExW(
-        WINDOW_EX_STYLE(0),
+        WS_EX_TOOLWINDOW,
         CLASS_NAME,
         w!("Minibar - main"),
         WS_POPUP,

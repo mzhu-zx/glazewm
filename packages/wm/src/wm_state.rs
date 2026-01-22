@@ -5,7 +5,7 @@ use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
 use wm_common::{
-  BindingModeConfig, Direction, Point, WindowState, WmEvent,
+  BindingModeConfig, ContainerDto, Direction, Point, WindowState, WmEvent,
 };
 use wm_platform::{NativeMonitor, NativeWindow, Platform};
 
@@ -480,9 +480,45 @@ impl WmState {
     if self.has_initialized
       && (!self.is_paused || matches!(event, WmEvent::PauseChanged { .. }))
     {
+      match &event {
+        WmEvent::FocusedContainerMoved { focused_container }
+        | WmEvent::FocusChanged { focused_container } => {
+          if let Some(stack_container) =
+            self.try_get_stack_parent(focused_container)
+          {
+            if let Err(err) = self
+              .event_tx
+              .send(WmEvent::StackFocusChanged { stack_container })
+            {
+              warn!("Failed to send event: {}", err);
+            }
+          }
+        }
+        _ => {}
+      };
+
       if let Err(err) = self.event_tx.send(event) {
         warn!("Failed to send event: {}", err);
       }
+    }
+  }
+
+
+  /// Try to see if the parent of a DTO object is a stack. If so, turn it into a DTO.
+  ///
+  /// This method is very inefficient, but it preserves the general structure.
+  fn try_get_stack_parent(
+    &self,
+    dto: &ContainerDto,
+  ) -> Option<ContainerDto> {
+    let ContainerDto::Window(w) = dto else {
+      return None;
+    };
+    let parent = w.parent_id.and_then(|pid| self.container_by_id(pid))?;
+    if let Container::Stack(s) = parent {
+      s.to_dto().ok()
+    } else {
+      None
     }
   }
 

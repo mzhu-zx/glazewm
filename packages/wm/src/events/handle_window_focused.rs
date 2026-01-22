@@ -95,12 +95,12 @@ pub fn handle_window_focused(
     state.is_focus_synced = true;
     state.pending_sync.queue_workspace_to_reorder(workspace);
 
-    // Broadcast the focus change event.
-    if let Some(Container::Stack(stack)) = focused_container.parent() {
-      state.emit_event(WmEvent::StackFocusChanged {
-        stack_container: stack.to_dto()?,
-      });
-    }
+    // // Broadcast the focus change event.
+    // if let Some(Container::Stack(stack)) = focused_container.parent() {
+    //   state.emit_event(WmEvent::StackFocusChanged {
+    //     stack_container: stack.to_dto()?,
+    //   });
+    // }
     state.emit_event(WmEvent::FocusChanged {
       focused_container: window.to_dto()?,
     });

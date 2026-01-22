@@ -99,11 +99,11 @@ fn sync_focus(
     }
   }
 
-  if let Some(Container::Stack(stack)) = focused_container.parent() {
-    state.emit_event(WmEvent::StackFocusChanged {
-      stack_container: stack.to_dto()?,
-    });
-  }
+  // if let Some(Container::Stack(stack)) = focused_container.parent() {
+  //   state.emit_event(WmEvent::StackFocusChanged {
+  //     stack_container: stack.to_dto()?,
+  //   });
+  // }
 
   state.emit_event(WmEvent::FocusChanged {
     focused_container: focused_container.to_dto()?,
