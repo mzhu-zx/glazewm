@@ -4,7 +4,7 @@ use std::{process, thread, time::Duration};
 
 use tracing::info;
 use windows::Win32::{
-  Foundation::{CloseHandle, GetLastError},
+  Foundation::GetLastError,
   System::LibraryLoader::{GetModuleFileNameW, GetModuleHandleW},
   UI::HiDpi::GetProcessDpiAwareness,
 };

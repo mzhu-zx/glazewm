@@ -1,7 +1,4 @@
-use std::{
-  i32,
-  sync::{Once, atomic::AtomicU64},
-};
+use std::sync::{Once, atomic::AtomicU64};
 
 use anyhow::{Context, Result};
 use tracing::{debug, info};
@@ -22,7 +19,13 @@ use windows::{
         APPBARDATA, SHAppBarMessage,
       },
       WindowsAndMessaging::{
-        CREATESTRUCTW, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GWL_STYLE, GWLP_USERDATA, GetMessageW, GetWindowLongPtrW, IDC_ARROW, LoadCursorA, MSG, MoveWindow, PostQuitMessage, RegisterClassW, SW_NORMAL, SetWindowLongPtrW, SetWindowLongW, ShowWindow, TranslateMessage, WINDOW_EX_STYLE, WM_CREATE, WM_DESTROY, WM_DISPLAYCHANGE, WM_LBUTTONDOWN, WM_NCCREATE, WM_PAINT, WM_SIZE, WNDCLASSW, WS_EX_TOOLWINDOW, WS_POPUP
+        CREATESTRUCTW, CreateWindowExW, DefWindowProcW, DestroyWindow,
+        DispatchMessageW, GWL_STYLE, GWLP_USERDATA, GetMessageW,
+        GetWindowLongPtrW, IDC_ARROW, LoadCursorA, MSG, MoveWindow,
+        PostQuitMessage, RegisterClassW, SW_NORMAL, SetWindowLongPtrW,
+        SetWindowLongW, ShowWindow, TranslateMessage, WM_CREATE,
+        WM_DESTROY, WM_DISPLAYCHANGE, WM_LBUTTONDOWN, WM_NCCREATE,
+        WM_PAINT, WM_SIZE, WNDCLASSW, WS_EX_TOOLWINDOW, WS_POPUP,
       },
     },
   },

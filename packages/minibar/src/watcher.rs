@@ -1,12 +1,10 @@
 use std::{
-  iter,
   sync::{Arc, Mutex},
   time::Duration,
 };
 
 use anyhow::{Context, Result};
 use tokio::{
-  runtime::Handle,
   sync::mpsc::{self, Receiver, Sender},
   task::JoinHandle,
 };
@@ -150,7 +148,7 @@ async fn interpreter_main(
       .recv()
       .await
       .context("refresh channel is closed?")?;
-    while let Ok(_) = rx_refresh.try_recv() {} // eat repetitive events
+    while rx_refresh.try_recv().is_ok() {} // eat repetitive events
     debug!("fresh request received, dispatch to interpreter");
     tx_cmd.send(MinibarCommand::GetWorkspaces).await?;
   }
@@ -163,7 +161,7 @@ pub enum MinibarCommand {
 }
 
 async fn start_cli(
-  mut rx_cmd: Receiver<MinibarCommand>,
+  rx_cmd: Receiver<MinibarCommand>,
   ctx: ServiceContext,
 ) -> JoinHandle<()> {
   tokio::spawn(async move { cli_main(rx_cmd, ctx).await.unwrap() })

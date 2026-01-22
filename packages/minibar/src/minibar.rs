@@ -345,6 +345,9 @@ impl Minibar {
               debug!("workspace update! ({:?})", 1)
             }
           }
+        } else {
+          // drop the thread when tx is off.
+          break;
         }
       }
     });

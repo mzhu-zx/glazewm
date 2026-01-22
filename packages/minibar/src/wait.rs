@@ -1,7 +1,6 @@
 use anyhow::Result;
 use windows::{
   Win32::{
-    self,
     Foundation::{ERROR_ALREADY_EXISTS, GetLastError, HANDLE},
     System::Threading::CreateMutexW,
     UI::WindowsAndMessaging::{MB_ICONERROR, MB_OK, MessageBoxW},
