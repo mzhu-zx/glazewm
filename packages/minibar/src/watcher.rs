@@ -1,6 +1,5 @@
 use std::{
-  sync::{Arc, Mutex},
-  time::Duration,
+  iter, sync::{Arc, Mutex}, time::Duration
 };
 
 use anyhow::{Context, Result};
@@ -393,14 +392,11 @@ impl GlazeWmService {
 
   pub fn current_windows(&self) -> Vec<WindowStatus> {
     fn truncate_title(src: &str) -> String {
-      let mut s = (src[..src.len().min(20)]).to_string();
-      if src.len() > 20 {
-        for _ in 0..3 {
-          s.pop();
-        }
-        s.push_str("...");
+      if src.chars().count() > 20 {
+        src.chars().take(17).chain(iter::repeat_n('.', 3)).collect()
+      } else {
+        src.to_string()
       }
-      s
     }
 
     if let Some(w) = self.stack.lock().unwrap().windows() {
