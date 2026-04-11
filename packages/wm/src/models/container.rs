@@ -7,17 +7,17 @@ use ambassador::Delegate;
 use enum_as_inner::EnumAsInner;
 use uuid::Uuid;
 use wm_common::{
-  ActiveDrag, ContainerDto, Direction, DisplayState, GapsConfig, Rect,
-  RectDelta, TilingDirection, WindowRuleConfig, WindowState,
+  ActiveDrag, ContainerDto, DisplayState, GapsConfig, TilingDirection,
+  WindowRuleConfig, WindowState,
 };
-use wm_platform::NativeWindow;
+use wm_platform::{Direction, NativeWindow, Rect, RectDelta};
 
 use crate::models::StackContainer;
 #[allow(clippy::wildcard_imports)]
 use crate::{
   models::{
-    Monitor, NonTilingWindow, RootContainer, SplitContainer, TilingWindow,
-    Workspace,
+    Monitor, NativeWindowProperties, NonTilingWindow, RootContainer,
+    SplitContainer, TilingWindow, Workspace,
   },
   traits::*,
   user_config::UserConfig,
@@ -37,6 +37,9 @@ use crate::{
 /// # Example
 /// Conversion between the different container types:
 /// ```
+/// use wm::models::{Container, DirectionContainer, SplitContainer, TilingContainer};
+/// use wm::traits::{TilingSizeGetters, TilingDirectionGetters};
+///
 /// fn example(split: SplitContainer) {
 ///   // Convert a `SplitContainer` into a `Container`
 ///   let container: Container = split.into(); // Will be a `Container::Split`
@@ -52,7 +55,7 @@ use crate::{
 ///   let direction: DirectionContainer = tiling.try_into().unwrap(); // Will be a `DirectionContainer::Split`
 ///   direction.tiling_direction(); // Can use methods from the `TilingDirectionGetters` trait.
 ///
-///   // Covert a sub container back into a [Container]
+///   // Convert a sub container back into a [Container]
 ///   let container: Container = direction.into(); // Will be a `Container::Split`
 /// }
 /// ```
@@ -134,24 +137,40 @@ impl Eq for WindowContainer {}
 
 impl std::fmt::Display for WindowContainer {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    let native = self.native();
-    let title = native.title().unwrap_or_default();
-    let class = native.class_name().unwrap_or_default();
-    let process = native.process_name().unwrap_or_default();
-
     // Truncate title if longer than 20 chars. Need to use `chars()`
     // instead of byte slices to handle invalid byte indices.
-    let title = if title.len() > 20 {
-      format!("{}...", &title.chars().take(17).collect::<String>())
-    } else {
-      title
+    let title = {
+      let title = self.native_properties().title;
+      if title.len() > 20 {
+        format!("{}...", title.chars().take(17).collect::<String>())
+      } else {
+        title
+      }
     };
+
+    let class = {
+      #[cfg(target_os = "windows")]
+      {
+        self.native_properties().class_name
+      }
+      #[cfg(not(target_os = "windows"))]
+      {
+        String::new()
+      }
+    };
+
+    let process = self.native_properties().process_name;
 
     write!(
       f,
-      "Window(hwnd={}, process={}, class={}, title={})",
-      native.handle, process, class, title,
-    )
+      "Window(id={:?}, process={}, class={}, title={})",
+      self.native().id(),
+      process,
+      class,
+      title,
+    )?;
+
+    Ok(())
   }
 }
 
