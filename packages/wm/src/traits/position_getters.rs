@@ -15,7 +15,7 @@ pub trait PositionGetters {
 macro_rules! impl_position_getters_as_resizable {
   ($struct_name:ident) => {
     impl PositionGetters for $struct_name {
-      fn to_rect(&self) -> anyhow::Result<Rect> {
+      fn to_rect(&self) -> anyhow::Result<wm_platform::Rect> {
         let parent = self
           .parent()
           .and_then(|parent| parent.as_direction_container().ok())
@@ -102,7 +102,7 @@ macro_rules! impl_position_getters_as_resizable {
           }
         };
 
-        Ok(Rect::from_xy(x, y, width, height))
+        Ok(wm_platform::Rect::from_xy(x, y, width, height))
       }
     }
   };

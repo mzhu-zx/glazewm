@@ -17,7 +17,8 @@ use wm_platform::{
 use crate::{
   commands::{
     container::{
-      focus_container_by_id, focus_in_direction, set_tiling_direction, toggle_stack, toggle_tiling_direction
+      focus_container_by_id, focus_in_direction, set_tiling_direction,
+      toggle_stack, toggle_tiling_direction,
     },
     general::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
@@ -25,11 +26,9 @@ use crate::{
     },
     monitor::focus_monitor,
     window::{
-      WindowPositionTarget, ignore_window, move_window_in_direction, move_window_to_workspace, resize_window, set_window_position, set_window_size, update_window_state
-    },
-    workspace::{
-      focus_workspace, move_workspace_in_direction,
-      update_workspace_config,
+      ignore_window, move_window_in_direction, move_window_to_workspace,
+      resize_window, set_window_position, set_window_size,
+      update_window_state, WindowPositionTarget,
     },
     workspace::{
       focus_workspace, move_workspace_in_direction,

@@ -243,9 +243,9 @@ fn redraw_containers(
             .last();
           if let Some(c) = below.and_then(|c| c.as_window_container().ok())
           {
-            ZOrder::AfterWindow(c.native().handle)
+            WindowZOrder::AfterWindow(c.native().id())
           } else {
-            ZOrder::Normal
+            WindowZOrder::Normal
           }
         } else {
           let focused_descendant = workspace
@@ -255,12 +255,12 @@ fn redraw_containers(
 
           if let Some(focused_descendant) = focused_descendant {
             if window.id() == focused_descendant.id() {
-              ZOrder::Normal
+              WindowZOrder::Normal
             } else {
-              ZOrder::AfterWindow(focused_descendant.native().handle)
+              WindowZOrder::AfterWindow(focused_descendant.native().id())
             }
           } else {
-            ZOrder::Normal
+            WindowZOrder::Normal
           }
         }
       }
@@ -313,7 +313,7 @@ fn redraw_containers(
       },
     );
 
-    let rect = {
+    let _rect = {
       let adjusted_rect = window
         .to_rect()?
         .apply_delta(&window.total_border_delta()?, None);
@@ -322,7 +322,7 @@ fn redraw_containers(
       // excessive shadow borders.
       match window.state() {
         WindowState::Tiling => {
-          adjusted_rect.clamp(monitor.native().working_rect()?)
+          adjusted_rect.clamp(&monitor.native().working_area()?)
         }
         _ => adjusted_rect,
       }

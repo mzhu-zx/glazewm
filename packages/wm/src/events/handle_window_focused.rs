@@ -8,7 +8,7 @@ use crate::{
     container::set_focused_descendant, window::run_window_rules,
     workspace::focus_workspace,
   },
-  models::{Container, WorkspaceTarget},
+  models::WorkspaceTarget,
   traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,

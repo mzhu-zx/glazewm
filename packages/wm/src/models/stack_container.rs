@@ -7,7 +7,7 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{
-  ContainerDto, GapsConfig, Rect, StackContainerDto, TilingDirection,
+  ContainerDto, GapsConfig, StackContainerDto, TilingDirection,
 };
 
 use crate::{
@@ -71,9 +71,7 @@ impl StackContainer {
       parent_id: self.parent().map(|parent| parent.id()),
       children,
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),
-      device_name: self.monitor().and_then(|m| {
-        m.native().device_name().ok().map(ToOwned::to_owned)
-      }),
+      device_name: self.monitor().and_then(|m| m.native().name().ok()),
       has_focus: self.has_focus(None),
       tiling_size: self.tiling_size(),
       tiling_direction: self.tiling_direction(),
