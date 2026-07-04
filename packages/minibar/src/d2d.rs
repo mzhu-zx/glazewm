@@ -23,7 +23,7 @@ use windows::
 ;
 
 pub struct D2DHost {
-  pub d2d_factory: ID2D1Factory,
+  pub _d2d_factory: ID2D1Factory,
   pub dwrite_factory: IDWriteFactory,
   pub render_target: ID2D1HwndRenderTarget,
   pub font: IDWriteTextFormat,
@@ -79,7 +79,7 @@ impl D2DHost {
     let font = create_jetbrains_mono_12(&dwrite_factory)?;
     Ok(D2DHost {
       dwrite_factory,
-      d2d_factory,
+      _d2d_factory: d2d_factory,
       render_target,
       font,
     })
