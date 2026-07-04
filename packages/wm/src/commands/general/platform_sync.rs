@@ -235,32 +235,51 @@ fn redraw_containers(
         WindowZOrder::TopMost
       }
       _ if should_bring_to_front => {
-        if window.parent().is_some_and(|p| p.is_stack()) {
-          let w_id = window.id();
-          let below = window
-            .child_focus_order()
-            .take_while(|u| u.id() != w_id)
-            .last();
-          if let Some(c) = below.and_then(|c| c.as_window_container().ok())
-          {
-            WindowZOrder::AfterWindow(c.native().id())
-          } else {
-            WindowZOrder::Normal
-          }
-        } else {
-          let focused_descendant = workspace
-            .descendant_focus_order()
-            .next()
-            .and_then(|container| container.as_window_container().ok());
+        // The window's stack sibling directly above it (if the window is
+        // in a stack and isn't already the top of it). A stack's internal
+        // z-order mirrors the stack's `child_focus_order`, where the front
+        // of the order is the topmost window.
+        let stack_sibling_above = window
+          .parent()
+          .filter(|parent| parent.is_stack())
+          .and_then(|stack| {
+            let window_id = window.id();
+            stack
+              .child_focus_order()
+              .take_while(|sibling| sibling.id() != window_id)
+              .last()
+          })
+          .and_then(|sibling| sibling.as_window_container().ok());
 
-          if let Some(focused_descendant) = focused_descendant {
-            if window.id() == focused_descendant.id() {
-              WindowZOrder::Normal
-            } else {
-              WindowZOrder::AfterWindow(focused_descendant.native().id())
+        match stack_sibling_above {
+          // Place the window directly below its stack sibling to preserve
+          // the stack's internal z-order. Focusing a window outside the
+          // stack leaves the stack's `child_focus_order` untouched, so the
+          // stack keeps its ordering.
+          Some(sibling_above) => {
+            WindowZOrder::AfterWindow(sibling_above.native().id())
+          }
+          // The window is either not in a stack, or is the top of its
+          // stack. Place it directly below the workspace's focused window,
+          // or leave it topmost if it is itself the focused window.
+          //
+          // Focusing a window inside a stack promotes it to the front of
+          // the stack's `child_focus_order` (via `set_focused_descendant`),
+          // making it the stack's top, so this brings it forward correctly.
+          None => {
+            let focused_descendant = workspace
+              .descendant_focus_order()
+              .next()
+              .and_then(|container| container.as_window_container().ok());
+
+            match focused_descendant {
+              Some(focused_descendant)
+                if window.id() != focused_descendant.id() =>
+              {
+                WindowZOrder::AfterWindow(focused_descendant.native().id())
+              }
+              _ => WindowZOrder::Normal,
             }
-          } else {
-            WindowZOrder::Normal
           }
         }
       }
