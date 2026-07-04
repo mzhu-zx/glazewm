@@ -6,9 +6,13 @@ use windows::{
       EnumDisplayMonitors, GetMonitorInfoA, HDC, HMONITOR, MONITORINFO,
       MONITORINFOEXA,
     },
+    UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI},
   },
   core::BOOL,
 };
+
+/// DPI corresponding to a 100% scale factor.
+const DEFAULT_DPI: u32 = 96;
 
 unsafe extern "system" fn monitor_enum_proc(
   hmonitor: HMONITOR,
@@ -39,10 +43,28 @@ unsafe extern "system" fn monitor_enum_proc(
     .to_string()
   };
 
+  // Effective DPI of the monitor, accounting for the user's display scale.
+  // Falls back to `DEFAULT_DPI` (100%) if the query fails.
+  let dpi = {
+    let mut dpi_x = DEFAULT_DPI;
+    let mut dpi_y = DEFAULT_DPI;
+    // SAFETY: `hmonitor` is a valid handle provided by the enumeration.
+    if unsafe {
+      GetDpiForMonitor(hmonitor, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y)
+    }
+    .is_ok()
+    {
+      dpi_x
+    } else {
+      DEFAULT_DPI
+    }
+  };
+
   if let Some(mon) = unsafe { lprc_monitor.as_ref() } {
     rects.push(MonitorInfo {
       rect: *mon,
       dev_name,
+      dpi,
     });
   }
 
@@ -53,6 +75,18 @@ unsafe extern "system" fn monitor_enum_proc(
 pub struct MonitorInfo {
   pub rect: RECT,
   pub dev_name: String,
+  /// Effective DPI of the monitor (`96` is 100% scaling).
+  pub dpi: u32,
+}
+
+impl MonitorInfo {
+  /// Scale factor of the monitor, where `1.0` is 100% scaling (96 DPI).
+  ///
+  /// Design (logical) sizes are multiplied by this to obtain physical
+  /// device pixels.
+  pub fn scale_factor(&self) -> f32 {
+    self.dpi as f32 / DEFAULT_DPI as f32
+  }
 }
 
 pub fn enum_monitor_infos() -> Result<Vec<MonitorInfo>> {

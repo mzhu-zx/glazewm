@@ -30,7 +30,13 @@ pub struct D2DHost {
 }
 
 impl D2DHost {
-  pub fn init(hwnd: HWND) -> Result<D2DHost> {
+  /// Initialize a Direct2D host bound to `hwnd`.
+  ///
+  /// `dpi` is the effective DPI of the target monitor (`96` is 100%
+  /// scaling). The render target is configured with this DPI so that
+  /// drawing done in design units (DIPs) is scaled to physical device
+  /// pixels.
+  pub fn init(hwnd: HWND, dpi: f32) -> Result<D2DHost> {
     let d2d_factory: ID2D1Factory = unsafe {
       D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, None)
     }?;
@@ -63,8 +69,9 @@ impl D2DHost {
       d2d_factory.CreateHwndRenderTarget(&rtp, &hwnd_rtp)
     }?;
     unsafe {
-      // disable scaling to use the device pixels
-      render_target.SetDpi(96.0, 96.0);
+      // Match the render target DPI to the monitor so that design-unit
+      // (DIP) coordinates are scaled up to physical device pixels.
+      render_target.SetDpi(dpi, dpi);
     }
 
     let dwrite_factory =

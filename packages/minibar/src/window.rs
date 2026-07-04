@@ -87,9 +87,11 @@ impl Window<Minibar> {
           let create_struct = lparam.0 as *mut CREATESTRUCTW;
           let window = (*create_struct).lpCreateParams as *mut Self;
           (*window).hwnd = hwnd;
-          let magic = create_appbar(hwnd, 30, (*window).monitor.rect)
-            .context("make app bar")
-            .unwrap();
+          let bar_height = (*window).scaled_bar_height();
+          let magic =
+            create_appbar(hwnd, bar_height, (*window).monitor.rect)
+              .context("make app bar")
+              .unwrap();
           (*window).appbar_magic = magic;
           SetWindowLongPtrW(hwnd, GWLP_USERDATA, window as isize);
           window
@@ -97,8 +99,10 @@ impl Window<Minibar> {
         WM_CREATE => {
           let window_ptr =
             GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut Self;
-          let d2d_host =
-            D2DHost::init(hwnd).context("intialize Direct2D").unwrap();
+          let dpi = (*window_ptr).monitor.dpi as f32;
+          let d2d_host = D2DHost::init(hwnd, dpi)
+            .context("intialize Direct2D")
+            .unwrap();
           (*window_ptr).d2d_host = Some(d2d_host);
           window_ptr
         }
@@ -178,6 +182,10 @@ impl Window<Minibar> {
       }
       WM_LBUTTONDOWN => {
         let (x, y) = lparam_as_xy(&lparam);
+        // Click coordinates are in physical device pixels; convert them
+        // back to design units (DIPs) to match the painted hit boxes.
+        let scale = self.monitor.scale_factor();
+        let (x, y) = (x as f32 / scale, y as f32 / scale);
         debug!("click: ({}, {})", x, y);
         self.state.on_click(x, y)?;
       }
@@ -239,6 +247,7 @@ impl Window<Minibar> {
       unsafe { RegisterClassW(&wc) };
     });
     let rect = monitor.rect;
+    let bar_height = scale_bar_height(state.config.bar_height, &monitor);
     let mut boxed = Box::new(Self {
       state,
       hwnd: Default::default(),
@@ -256,7 +265,7 @@ impl Window<Minibar> {
         rect.left,
         rect.top,
         rect.right - rect.left,
-        boxed.state.config.bar_height,
+        bar_height,
         None,
         None,
         Some(hinst),
@@ -273,6 +282,11 @@ impl Window<Minibar> {
     boxed
   }
 
+  /// Bar height in physical device pixels for this window's monitor.
+  fn scaled_bar_height(&self) -> i32 {
+    scale_bar_height(self.state.config.bar_height, &self.monitor)
+  }
+
   fn remove_appbar(&self) {
     unsafe {
       let mut data = APPBARDATA {
@@ -284,6 +298,12 @@ impl Window<Minibar> {
       SHAppBarMessage(ABM_REMOVE, &mut data);
     };
   }
+}
+
+/// Convert a design (logical) bar height to physical device pixels using
+/// the monitor's scale factor.
+fn scale_bar_height(bar_height: i32, monitor: &MonitorInfo) -> i32 {
+  (bar_height as f32 * monitor.scale_factor()).round() as i32
 }
 
 static GLOBAL_COUNTER: AtomicU64 = AtomicU64::new(0);

@@ -282,12 +282,11 @@ impl Minibar {
   }
 
   // implement click actions here
-  pub fn on_click(&mut self, x: u16, y: u16) -> Result<()> {
+  //
+  // `x` and `y` are in design units (DIPs), matching the painted hit boxes.
+  pub fn on_click(&mut self, x: f32, y: f32) -> Result<()> {
     if let Some(found) = self.ws_buttons.iter().find(|i| {
-      i.hit_test(Vector2 {
-        X: x as _,
-        Y: y as _,
-      })
+      i.hit_test(Vector2 { X: x, Y: y })
     }) {
       info!("hit! ({:?})", found);
       self.glazewm.send_command(format!(
@@ -298,10 +297,7 @@ impl Minibar {
     }
 
     if let Some(found) = self.win_buttons.iter().find(|i| {
-      i.hit_test(Vector2 {
-        X: x as _,
-        Y: y as _,
-      })
+      i.hit_test(Vector2 { X: x, Y: y })
     }) {
       info!("hit! ({:?})", found);
       self.glazewm.send_command(format!(
