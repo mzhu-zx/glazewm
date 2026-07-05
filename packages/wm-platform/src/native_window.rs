@@ -185,6 +185,20 @@ pub trait NativeWindowWindowsExt {
   /// This method is only available on Windows.
   fn has_owner_window(&self) -> bool;
 
+  /// Whether this window belongs to a process running at a higher integrity
+  /// level than the current process.
+  ///
+  /// Under Windows' User Interface Privilege Isolation (UIPI), a
+  /// lower-integrity process cannot reposition or otherwise manipulate such
+  /// windows unless it has UIAccess. Callers without UIAccess should refuse
+  /// to manage windows for which this returns `true`, as their position can
+  /// never be set.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn is_higher_integrity(&self) -> crate::Result<bool>;
+
   /// Whether the window has the given window style flag(s) set.
   ///
   /// # Platform-specific
@@ -349,6 +363,10 @@ impl NativeWindowWindowsExt for NativeWindow {
 
   fn has_owner_window(&self) -> bool {
     self.inner.has_owner_window()
+  }
+
+  fn is_higher_integrity(&self) -> crate::Result<bool> {
+    self.inner.is_higher_integrity()
   }
 
   fn has_window_style(&self, style: WINDOW_STYLE) -> bool {

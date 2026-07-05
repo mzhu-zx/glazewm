@@ -1,19 +1,24 @@
-use std::time::Duration;
+use std::{sync::OnceLock, time::Duration};
 
 use tokio::task;
 use tracing::warn;
 use windows::{
   core::PWSTR,
   Win32::{
-    Foundation::{CloseHandle, BOOL, HWND, LPARAM, POINT, RECT},
+    Foundation::{CloseHandle, BOOL, HANDLE, HWND, LPARAM, POINT, RECT},
     Graphics::Dwm::{
       DwmGetWindowAttribute, DwmSetWindowAttribute, DWMWA_BORDER_COLOR,
       DWMWA_CLOAKED, DWMWA_COLOR_NONE, DWMWA_EXTENDED_FRAME_BOUNDS,
       DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DEFAULT, DWMWCP_DONOTROUND,
       DWMWCP_ROUND, DWMWCP_ROUNDSMALL,
     },
+    Security::{
+      GetSidSubAuthority, GetSidSubAuthorityCount, GetTokenInformation,
+      TokenIntegrityLevel, TOKEN_MANDATORY_LABEL, TOKEN_QUERY,
+    },
     System::Threading::{
-      OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
+      GetCurrentProcess, OpenProcess, OpenProcessToken,
+      QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
       PROCESS_QUERY_LIMITED_INFORMATION,
     },
     UI::{
@@ -120,6 +125,51 @@ impl NativeWindow {
       .ok_or_else(|| {
         crate::Error::Platform("Failed to parse process name.".to_string())
       })
+  }
+
+  /// Implements [`NativeWindowWindowsExt::is_higher_integrity`].
+  ///
+  /// Windows' User Interface Privilege Isolation (UIPI) prevents a process
+  /// from repositioning or otherwise manipulating a window owned by a
+  /// process running at a higher integrity level (e.g. an elevated window,
+  /// when we are not elevated), unless we have UIAccess.
+  ///
+  /// A failure to read the target's integrity level is treated as it being
+  /// higher, since that inaccessibility is itself indicative of a more
+  /// privileged process.
+  pub(crate) fn is_higher_integrity(&self) -> crate::Result<bool> {
+    let current = current_process_integrity_level()?;
+
+    match self.process_integrity_level() {
+      Ok(target) => Ok(target > current),
+      Err(err) => {
+        warn!(
+          "Failed to query window's integrity level, assuming elevated: {err}"
+        );
+        Ok(true)
+      }
+    }
+  }
+
+  /// Gets the integrity level (mandatory RID) of the process owning this
+  /// window.
+  fn process_integrity_level(&self) -> crate::Result<u32> {
+    let mut process_id = 0u32;
+    unsafe {
+      GetWindowThreadProcessId(self.hwnd(), Some(&raw mut process_id));
+    }
+
+    let process = unsafe {
+      OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, process_id)
+    }?;
+
+    // SAFETY: `process` is a valid handle opened above.
+    let result = unsafe { integrity_level_of_process(process) };
+
+    // Always close the process handle regardless of the query result.
+    unsafe { CloseHandle(process)? };
+
+    result
   }
 
   /// Implements [`NativeWindow::frame`].
@@ -748,6 +798,80 @@ impl From<NativeWindow> for crate::NativeWindow {
   fn from(window: NativeWindow) -> Self {
     crate::NativeWindow { inner: window }
   }
+}
+
+/// Gets the integrity level (mandatory RID) of the current process.
+///
+/// The value is cached after the first successful query, since it cannot
+/// change over the lifetime of the process.
+fn current_process_integrity_level() -> crate::Result<u32> {
+  static CACHE: OnceLock<u32> = OnceLock::new();
+
+  if let Some(level) = CACHE.get() {
+    return Ok(*level);
+  }
+
+  // SAFETY: `GetCurrentProcess` returns a pseudo-handle that is always valid
+  // and does not need to be closed.
+  let level = unsafe { integrity_level_of_process(GetCurrentProcess()) }?;
+  let _ = CACHE.set(level);
+
+  Ok(level)
+}
+
+/// Reads the integrity level (mandatory RID) from a process handle.
+///
+/// The returned value is one of the `SECURITY_MANDATORY_*_RID` constants
+/// (e.g. medium is `0x2000`, high is `0x3000`); larger means more
+/// privileged.
+///
+/// # Safety
+///
+/// `process` must be a valid handle opened with at least
+/// `PROCESS_QUERY_LIMITED_INFORMATION` access.
+unsafe fn integrity_level_of_process(
+  process: HANDLE,
+) -> crate::Result<u32> {
+  let mut token = HANDLE::default();
+  OpenProcessToken(process, TOKEN_QUERY, &raw mut token)?;
+
+  // Read the integrity level, ensuring the token handle is closed even on
+  // failure.
+  let result = (|| {
+    // First call determines the required buffer size; it is expected to
+    // fail with `ERROR_INSUFFICIENT_BUFFER` while setting `length`.
+    let mut length = 0u32;
+    let _ = GetTokenInformation(
+      token,
+      TokenIntegrityLevel,
+      None,
+      0,
+      &raw mut length,
+    );
+
+    let mut buffer = vec![0u8; length as usize];
+    GetTokenInformation(
+      token,
+      TokenIntegrityLevel,
+      Some(buffer.as_mut_ptr().cast()),
+      length,
+      &raw mut length,
+    )?;
+
+    // SAFETY: On success, the buffer holds a `TOKEN_MANDATORY_LABEL` whose
+    // `Sid` is a valid mandatory-label SID.
+    let label = &*buffer.as_ptr().cast::<TOKEN_MANDATORY_LABEL>();
+    let sid = label.Label.Sid;
+    let sub_authority_count = *GetSidSubAuthorityCount(sid);
+    let rid =
+      *GetSidSubAuthority(sid, u32::from(sub_authority_count - 1));
+
+    crate::Result::Ok(rid)
+  })();
+
+  CloseHandle(token)?;
+
+  result
 }
 
 /// Implements [`Dispatcher::visible_windows`].

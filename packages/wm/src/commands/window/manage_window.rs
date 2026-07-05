@@ -145,6 +145,16 @@ fn check_is_manageable(
         return Ok(None);
       }
     }
+
+    // Without UIAccess, we lack the privilege to reposition windows owned by
+    // a higher-integrity (e.g. elevated) process. Refuse to manage such
+    // windows rather than tracking a window we can never move.
+    #[cfg(not(feature = "ui_access"))]
+    {
+      if native_window.is_higher_integrity().unwrap_or(true) {
+        return Ok(None);
+      }
+    }
   }
 
   Ok(Some(native_properties))
