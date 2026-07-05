@@ -24,6 +24,7 @@ mod d2d;
 mod logging;
 mod minibar;
 mod monitor;
+mod tray;
 mod wait;
 mod watcher;
 mod window;
@@ -63,14 +64,18 @@ async fn main() {
     println!("generation: {}", cnt);
     let monitors = enum_monitor_infos().unwrap();
     let mut handles = vec![];
-    for monitor in monitors {
+    for (idx, monitor) in monitors.into_iter().enumerate() {
       let glazewm = GlazeWmService::start(monitor.dev_name.clone()).await;
       let minibar = Minibar::new(config.clone(), glazewm);
 
+      // Host the single tray icon on the first monitor's window.
+      let with_tray = idx == 0;
+
       let handle = std::thread::spawn(move || {
-        let minibar =
-          window::Window::<minibar::Minibar>::create(monitor, minibar)
-            .start_message_loop();
+        let minibar = window::Window::<minibar::Minibar>::create(
+          monitor, minibar, with_tray,
+        )
+        .start_message_loop();
         minibar.shutdown();
       });
       handles.push(handle);

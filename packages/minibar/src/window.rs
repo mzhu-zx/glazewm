@@ -1,7 +1,10 @@
-use std::sync::{Once, atomic::AtomicU64};
+use std::{
+  process,
+  sync::{Once, atomic::AtomicU64},
+};
 
 use anyhow::{Context, Result};
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 use windows::{
   Win32::{
     Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
@@ -33,7 +36,13 @@ use windows::{
 };
 use windows_numerics::Matrix3x2;
 
-use crate::{color, d2d::D2DHost, minibar::Minibar, monitor::MonitorInfo};
+use crate::{
+  color,
+  d2d::D2DHost,
+  minibar::Minibar,
+  monitor::MonitorInfo,
+  tray::{TrayIcon, WM_TRAY_CALLBACK},
+};
 
 static REGISTER_MAIN_WINDOW_CLASS: Once = Once::new();
 
@@ -43,6 +52,10 @@ pub struct Window<State> {
   d2d_host: Option<D2DHost>,
   monitor: MonitorInfo,
   appbar_magic: u32,
+  /// Whether this window hosts the tray icon.
+  with_tray: bool,
+  /// The tray icon, present only while this window owns it.
+  tray: Option<TrayIcon>,
 }
 
 impl<T> Window<T> {
@@ -143,6 +156,24 @@ impl Window<Minibar> {
           .state
           .on_create(unsafe { GetCurrentThreadId() }, self.hwnd)?;
         // self.state.on_create(unsafe { GetCurrentThreadId() })?;
+
+        if self.with_tray {
+          match TrayIcon::add(self.hwnd, "GlazeWM Minibar") {
+            Ok(tray) => self.tray = Some(tray),
+            Err(err) => error!("failed to add tray icon: {}", err),
+          }
+        }
+      }
+      WM_TRAY_CALLBACK => {
+        if let Some(tray) = self.tray.as_ref() {
+          if tray.on_callback(lparam)? {
+            info!("exit requested from tray; shutting down minibar.");
+            // Remove the tray icon before exiting, as `process::exit`
+            // does not run destructors.
+            self.tray = None;
+            process::exit(0);
+          }
+        }
       }
       WM_SIZE => {
         let (width, height) = lparam_as_xy(&lparam);
@@ -227,7 +258,14 @@ impl Window<Minibar> {
 
   // pub fn create(state: State) -> Box<Self> {
   /// Create a new main window.
-  pub fn create(monitor: MonitorInfo, state: Minibar) -> Box<Self> {
+  ///
+  /// When `with_tray` is set, this window hosts the single notification-area
+  /// (tray) icon used to exit the application.
+  pub fn create(
+    monitor: MonitorInfo,
+    state: Minibar,
+    with_tray: bool,
+  ) -> Box<Self> {
     info!("monitor: {:?}", monitor);
     unsafe { CoInitialize(None) }.ok().unwrap();
 
@@ -254,6 +292,8 @@ impl Window<Minibar> {
       d2d_host: None,
       monitor,
       appbar_magic: 0,
+      with_tray,
+      tray: None,
     });
 
     let hwnd = unsafe {
