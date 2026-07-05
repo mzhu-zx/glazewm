@@ -1,7 +1,7 @@
 use anyhow::Context;
 
 use crate::{
-  commands::container::flatten_tiling_container,
+  commands::container::{flatten_tiling_container, resize_stack_container},
   models::Container,
   traits::{CommonGetters, TilingSizeGetters, MIN_TILING_SIZE},
 };
@@ -34,6 +34,16 @@ pub fn detach_container(child_to_remove: Container) -> anyhow::Result<()> {
     .retain(|id| *id != child_to_remove.id());
 
   *child_to_remove.borrow_parent_mut() = None;
+
+  // A stack sizes every child as `1.0 - STACK_HEADER_SIZE * n`, so removing
+  // a child requires re-sizing the survivors for the new count rather than
+  // redistributing the freed space proportionally. Skipping this leaves the
+  // remaining windows oversized while still offset by the header, causing
+  // vertical overflow.
+  if let Some(stack) = parent.as_stack() {
+    resize_stack_container(stack);
+    return Ok(());
+  }
 
   // Resize the siblings if it is a tiling container.
   if let Ok(child_to_remove) = child_to_remove.as_tiling_container() {
