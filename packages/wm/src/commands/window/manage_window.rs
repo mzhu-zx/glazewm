@@ -1,6 +1,8 @@
 use anyhow::Context;
 use tracing::info;
-use wm_common::{try_warn, WindowRuleEvent, WindowState, WmEvent};
+use wm_common::{
+  try_warn, InitialWindowState, WindowRuleEvent, WindowState, WmEvent,
+};
 use wm_platform::{NativeWindow, RectDelta};
 
 use crate::{
@@ -176,8 +178,31 @@ fn create_window(
     .context("No nearest workspace.")?;
 
   let gaps_config = config.value.gaps.clone();
-  let window_state =
-    window_state_to_create(&native_properties, &nearest_monitor, config)?;
+
+  // Windows adopt the target workspace's `initial_state` override, falling
+  // back to the global default. Explicit window rules run afterwards on the
+  // `Manage` event, so they still take precedence over this default.
+  let target_workspace_for_state = match &target_parent {
+    Some(parent) => parent.workspace().context("No workspace.")?,
+    None => state
+      .focused_container()
+      .context("No focused container.")?
+      .workspace()
+      .context("No workspace.")?,
+  };
+  let initial_state = target_workspace_for_state
+    .config()
+    .initial_state
+    .unwrap_or_else(|| {
+      config.value.window_behavior.initial_state.clone()
+    });
+
+  let window_state = window_state_to_create(
+    &native_properties,
+    &nearest_monitor,
+    config,
+    &initial_state,
+  )?;
 
   // Attach the new window as the first child of the target parent (if
   // provided), otherwise, add as a sibling of the focused container.
@@ -271,11 +296,16 @@ fn create_window(
 
 /// Gets the initial state for a window based on its native state.
 ///
+/// `initial_state` is the default state (resolved from the target
+/// workspace's override or the global config) used when the window's native
+/// state does not force a specific one.
+///
 /// Note that maximized windows are initialized as tiling.
 fn window_state_to_create(
   native_properties: &NativeWindowProperties,
   nearest_monitor: &Monitor,
   config: &UserConfig,
+  initial_state: &InitialWindowState,
 ) -> anyhow::Result<WindowState> {
   if native_properties.is_minimized {
     return Ok(WindowState::Minimized);
@@ -315,7 +345,7 @@ fn window_state_to_create(
     ));
   }
 
-  Ok(WindowState::default_from_config(&config.value))
+  Ok(WindowState::from_initial_state(initial_state, &config.value))
 }
 
 /// Gets where to insert a new window in the container tree.

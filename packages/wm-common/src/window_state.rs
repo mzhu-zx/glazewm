@@ -18,14 +18,24 @@ pub enum WindowState {
 }
 
 impl WindowState {
+  /// Maps an `InitialWindowState` to a `WindowState`, using the configured
+  /// floating state defaults.
   #[must_use]
-  pub fn default_from_config(config: &ParsedConfig) -> Self {
-    match config.window_behavior.initial_state {
+  pub fn from_initial_state(
+    initial_state: &InitialWindowState,
+    config: &ParsedConfig,
+  ) -> Self {
+    match initial_state {
       InitialWindowState::Tiling => Self::Tiling,
       InitialWindowState::Floating => Self::Floating(
         config.window_behavior.state_defaults.floating.clone(),
       ),
     }
+  }
+
+  #[must_use]
+  pub fn default_from_config(config: &ParsedConfig) -> Self {
+    Self::from_initial_state(&config.window_behavior.initial_state, config)
   }
 
   #[must_use]

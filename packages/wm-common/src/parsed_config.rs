@@ -1,3 +1,4 @@
+use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use wm_platform::{
   Color, CornerStyle, Key, Keybinding, LengthValue, OpacityValue,
@@ -175,7 +176,7 @@ pub struct WindowBehaviorConfig {
   pub state_defaults: WindowStateDefaultsConfig,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize, ValueEnum)]
 #[serde(rename_all = "snake_case")]
 pub enum InitialWindowState {
   #[default]
@@ -385,6 +386,12 @@ pub struct WorkspaceConfig {
 
   #[serde(default = "default_bool::<false>")]
   pub keep_alive: bool,
+
+  /// State that new windows on this workspace are created in, overriding the
+  /// global `window_behavior.initial_state`. `None` falls back to the global
+  /// default.
+  #[serde(default)]
+  pub initial_state: Option<InitialWindowState>,
 }
 
 /// Helper function for setting a default value for a boolean field.
