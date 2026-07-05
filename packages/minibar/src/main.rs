@@ -2,6 +2,7 @@
 
 use std::{process, thread, time::Duration};
 
+use clap::Parser;
 use tracing::info;
 use windows::Win32::{
   Foundation::GetLastError,
@@ -30,6 +31,8 @@ mod window;
 #[tokio::main]
 async fn main() {
   init_logger();
+
+  let config = Config::parse();
 
   let _handle = check_instance()
     .inspect_err(|e| {
@@ -62,13 +65,7 @@ async fn main() {
     let mut handles = vec![];
     for monitor in monitors {
       let glazewm = GlazeWmService::start(monitor.dev_name.clone()).await;
-      let minibar = Minibar::new(
-        Config {
-          bar_height: 30,
-          pad_size: 5,
-        },
-        glazewm,
-      );
+      let minibar = Minibar::new(config.clone(), glazewm);
 
       let handle = std::thread::spawn(move || {
         let minibar =

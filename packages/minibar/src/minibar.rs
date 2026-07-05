@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use clap::Parser;
 use tracing::{debug, error, info};
 use widestring::U16CString;
 use windows::Win32::{
@@ -17,8 +18,20 @@ use crate::{
   watcher::{GlazeWmService, WindowStatus, WorkspaceStatus},
 };
 
+/// Command-line configuration for the minibar.
+///
+/// All lengths are expressed in device-independent pixels (DIPs), matching
+/// the units used when painting and hit-testing. They are scaled to
+/// physical pixels by the per-monitor DPI at render time.
+#[derive(Parser, Debug, Clone)]
+#[command(name = "minibar", about = "GlazeWM minibar.")]
 pub struct Config {
+  /// Height of the bar, in device-independent pixels (DIPs).
+  #[arg(long, default_value_t = 30)]
   pub bar_height: i32,
+
+  /// Padding around bar indicators, in device-independent pixels (DIPs).
+  #[arg(long, default_value_t = 5)]
   pub pad_size: i32,
 }
 
