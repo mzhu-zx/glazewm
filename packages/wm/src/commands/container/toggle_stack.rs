@@ -8,7 +8,7 @@ use anyhow::Context;
 use wm_common::TilingDirection;
 
 use crate::{
-  commands::container::flatten_tiling_container,
+  commands::container::{flatten_tiling_container, resize_stack_container},
   models::{
     Container, DirectionContainer, StackContainer, TilingContainer,
     TilingWindow,
@@ -128,13 +128,16 @@ pub fn wrap_in_stack_container(
     target_parent
       .borrow_child_focus_order_mut()
       .retain(|id| id != &target_child.id());
-
-    // Scale the tiling size to the new split container.
-    target_child.set_tiling_size(1.0);
   }
 
   // Add original focus order to split container.
   *stack_container.borrow_child_focus_order_mut() = sorted_focus_ids;
+
+  // Shrink each stacked window to leave room for the header/bar offset
+  // applied in `PositionGetters`. Without this the window keeps a full
+  // `tiling_size` of 1.0 while still being offset downwards, overflowing
+  // the parent along the stacking axis.
+  resize_stack_container(stack_container);
 
   Ok(())
 }
