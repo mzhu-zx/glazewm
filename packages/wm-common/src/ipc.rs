@@ -31,7 +31,6 @@ pub enum ClientResponseData {
   EventSubscribe(EventSubscribeData),
   EventUnsubscribe,
   Focused(FocusedData),
-  Say,
   Monitors(MonitorsData),
   TilingDirection(TilingDirectionData),
   Windows(WindowsData),
@@ -134,20 +133,5 @@ mod tests {
       ServerMessage::HearBroadcast(msg)
         if msg.subscription_id == subscription_id && msg.word == "hello"
     ));
-  }
-
-  /// The `Say` acknowledgement carries no payload and reports success.
-  #[test]
-  fn say_ack_serializes_to_null_data() {
-    let message = ServerMessage::ClientResponse(ClientResponseMessage {
-      client_message: "say hello".to_string(),
-      data: Some(ClientResponseData::Say),
-      error: None,
-      success: true,
-    });
-
-    let json = serde_json::to_string(&message).unwrap();
-    assert!(json.contains(r#""data":null"#));
-    assert!(json.contains(r#""success":true"#));
   }
 }

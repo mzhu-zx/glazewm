@@ -64,20 +64,6 @@ pub enum AppCommand {
     #[clap(long = "id")]
     subscription_id: Uuid,
   },
-
-  /// Broadcasts a single word to all active `hear` subscribers.
-  ///
-  /// Requires an already running instance of the window manager.
-  Say {
-    /// The single word to broadcast.
-    word: String,
-  },
-
-  /// Subscribes to words broadcast via `say`, and continuously outputs
-  /// the incoming words.
-  ///
-  /// Requires an already running instance of the window manager.
-  Hear,
 }
 
 impl AppCommand {
@@ -155,6 +141,7 @@ pub enum SubscribableEvent {
   FocusChanged,
   StackFocusChanged,
   FocusedContainerMoved,
+  Hear,
   MonitorAdded,
   MonitorUpdated,
   MonitorRemoved,
@@ -181,6 +168,11 @@ pub enum InvokeCommand {
   },
   Position(InvokePositionCommand),
   Resize(InvokeResizeCommand),
+  /// Broadcasts a single word to all active `hear` subscribers.
+  Say {
+    /// The single word to broadcast.
+    word: String,
+  },
   UpdateWorkspaceConfig {
     #[clap(long, allow_hyphen_values = true)]
     workspace: Option<String>,

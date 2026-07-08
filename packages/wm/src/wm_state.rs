@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use anyhow::Context;
-use tokio::sync::mpsc::{self};
+use tokio::sync::{broadcast, mpsc::{self}};
 use tracing::warn;
 use uuid::Uuid;
 use wm_common::{BindingModeConfig, ContainerDto, HideCorner, WindowState, WmEvent};
@@ -75,6 +75,10 @@ pub struct WmState {
 
   /// Sender for gracefully shutting down the WM.
   exit_tx: mpsc::UnboundedSender<()>,
+
+  /// Sender for broadcasting words spoken via the `say` command to `hear`
+  /// subscribers.
+  pub word_tx: broadcast::Sender<String>,
 }
 
 impl WmState {
@@ -97,6 +101,9 @@ impl WmState {
       has_initialized: false,
       event_tx,
       exit_tx,
+      // A lone sender keeps the channel open; `hear` subscribers mint
+      // receivers on demand via `subscribe`.
+      word_tx: broadcast::channel(16).0,
     }
   }
 

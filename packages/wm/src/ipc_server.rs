@@ -37,8 +37,6 @@ pub struct IpcServer {
   event_tx: broadcast::Sender<(SubscribableEvent, WmEvent)>,
   _unsubscribe_rx: broadcast::Receiver<Uuid>,
   unsubscribe_tx: broadcast::Sender<Uuid>,
-  _word_rx: broadcast::Receiver<String>,
-  word_tx: broadcast::Sender<String>,
 }
 
 impl IpcServer {
@@ -46,7 +44,6 @@ impl IpcServer {
     let (message_tx, message_rx) = mpsc::unbounded_channel();
     let (event_tx, _event_rx) = broadcast::channel(16);
     let (unsubscribe_tx, _unsubscribe_rx) = broadcast::channel(16);
-    let (word_tx, _word_rx) = broadcast::channel(16);
 
     let server_addr = format!("127.0.0.1:{DEFAULT_IPC_PORT}");
     let server = TcpListener::bind(server_addr.clone()).await?;
@@ -75,9 +72,6 @@ impl IpcServer {
       unsubscribe_tx,
       #[allow(clippy::used_underscore_binding)]
       _unsubscribe_rx,
-      word_tx,
-      #[allow(clippy::used_underscore_binding)]
-      _word_rx,
     })
   }
 
@@ -270,6 +264,7 @@ impl IpcServer {
 
         let response_tx = response_tx.clone();
         let mut event_rx = self.event_tx.subscribe();
+        let mut word_rx = wm.state.word_tx.subscribe();
         let mut unsubscribe_rx = self.unsubscribe_tx.subscribe();
         let mut disconnection_rx = disconnection_tx.subscribe();
 
@@ -305,6 +300,28 @@ impl IpcServer {
                   }
                 }
               }
+              Ok(word) = word_rx.recv() => {
+                // Words spoken via `say` are delivered to `hear` (or `all`)
+                // subscribers as a distinct broadcast message.
+                if events.contains(&SubscribableEvent::Hear)
+                  || events.contains(&SubscribableEvent::All)
+                {
+                  let send_result = Self::to_hear_broadcast_msg(
+                    subscription_id,
+                    word,
+                  )
+                  .and_then(|word_msg| {
+                    response_tx
+                      .send(word_msg)
+                      .map_err(anyhow::Error::from)
+                  });
+
+                  if let Err(err) = send_result {
+                    warn!("Error emitting word: {}", err);
+                    break;
+                  }
+                }
+              }
             }
           }
         });
@@ -320,56 +337,6 @@ impl IpcServer {
           .context("Failed to unsubscribe from event.")?;
 
         ClientResponseData::EventUnsubscribe
-      }
-      AppCommand::Say { word } => {
-        info!("Broadcasting word: {:?}", word);
-
-        // Dropped silently when there are no active `hear` subscribers.
-        let _ = self.word_tx.send(word);
-
-        ClientResponseData::Say
-      }
-      AppCommand::Hear => {
-        let subscription_id = Uuid::new_v4();
-        info!("New word subscription {}.", subscription_id);
-
-        let response_tx = response_tx.clone();
-        let mut word_rx = self.word_tx.subscribe();
-        let mut unsubscribe_rx = self.unsubscribe_tx.subscribe();
-        let mut disconnection_rx = disconnection_tx.subscribe();
-
-        task::spawn(async move {
-          loop {
-            tokio::select! {
-              Ok(()) = disconnection_rx.recv() => {
-                break;
-              }
-              Ok(id) = unsubscribe_rx.recv() => {
-                if id == subscription_id {
-                  break;
-                }
-              }
-              Ok(word) = word_rx.recv() => {
-                let send_result = Self::to_hear_broadcast_msg(
-                  subscription_id,
-                  word,
-                )
-                .and_then(|word_msg| {
-                  response_tx.send(word_msg).map_err(anyhow::Error::from)
-                });
-
-                if let Err(err) = send_result {
-                  warn!("Error emitting word: {}", err);
-                  break;
-                }
-              }
-            }
-          }
-        });
-
-        ClientResponseData::EventSubscribe(EventSubscribeData {
-          subscription_id,
-        })
       }
       AppCommand::Start { .. } => bail!("Unsupported IPC command."),
     };

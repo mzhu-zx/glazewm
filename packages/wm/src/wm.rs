@@ -22,7 +22,7 @@ use crate::{
     },
     general::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
-      platform_sync, reload_config, shell_exec, toggle_pause,
+      platform_sync, reload_config, say, shell_exec, toggle_pause,
     },
     monitor::focus_monitor,
     window::{
@@ -625,6 +625,10 @@ impl WindowManager {
           }
           _ => Ok(()),
         }
+      }
+      InvokeCommand::Say { word } => {
+        say(word.clone(), state);
+        Ok(())
       }
       InvokeCommand::ShellExec {
         hide_window,
