@@ -10,6 +10,7 @@ pub const DEFAULT_IPC_PORT: u32 = 6123;
 pub enum ServerMessage {
   ClientResponse(ClientResponseMessage),
   EventSubscription(EventSubscriptionMessage),
+  HearBroadcast(HearBroadcastMessage),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -30,6 +31,7 @@ pub enum ClientResponseData {
   EventSubscribe(EventSubscribeData),
   EventUnsubscribe,
   Focused(FocusedData),
+  Say,
   Monitors(MonitorsData),
   TilingDirection(TilingDirectionData),
   Windows(WindowsData),
@@ -99,4 +101,53 @@ pub struct EventSubscriptionMessage {
   pub error: Option<String>,
   pub subscription_id: Uuid,
   pub success: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HearBroadcastMessage {
+  pub subscription_id: Uuid,
+  pub word: String,
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  /// A `HearBroadcast` server message is tagged distinctly and round-trips
+  /// so the CLI can route it apart from event subscriptions.
+  #[test]
+  fn hear_broadcast_round_trip() {
+    let subscription_id = Uuid::new_v4();
+    let message = ServerMessage::HearBroadcast(HearBroadcastMessage {
+      subscription_id,
+      word: "hello".to_string(),
+    });
+
+    let json = serde_json::to_string(&message).unwrap();
+    assert!(json.contains(r#""messageType":"hear_broadcast""#));
+    assert!(json.contains(r#""word":"hello""#));
+
+    let decoded = serde_json::from_str::<ServerMessage>(&json).unwrap();
+    assert!(matches!(
+      decoded,
+      ServerMessage::HearBroadcast(msg)
+        if msg.subscription_id == subscription_id && msg.word == "hello"
+    ));
+  }
+
+  /// The `Say` acknowledgement carries no payload and reports success.
+  #[test]
+  fn say_ack_serializes_to_null_data() {
+    let message = ServerMessage::ClientResponse(ClientResponseMessage {
+      client_message: "say hello".to_string(),
+      data: Some(ClientResponseData::Say),
+      error: None,
+      success: true,
+    });
+
+    let json = serde_json::to_string(&message).unwrap();
+    assert!(json.contains(r#""data":null"#));
+    assert!(json.contains(r#""success":true"#));
+  }
 }

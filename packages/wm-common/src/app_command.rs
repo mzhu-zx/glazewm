@@ -64,6 +64,20 @@ pub enum AppCommand {
     #[clap(long = "id")]
     subscription_id: Uuid,
   },
+
+  /// Broadcasts a single word to all active `hear` subscribers.
+  ///
+  /// Requires an already running instance of the window manager.
+  Say {
+    /// The single word to broadcast.
+    word: String,
+  },
+
+  /// Subscribes to words broadcast via `say`, and continuously outputs
+  /// the incoming words.
+  ///
+  /// Requires an already running instance of the window manager.
+  Hear,
 }
 
 impl AppCommand {

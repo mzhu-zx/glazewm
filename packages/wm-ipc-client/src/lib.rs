@@ -8,8 +8,8 @@ use tokio_tungstenite::{
 };
 use uuid::Uuid;
 use wm_common::{
-  ClientResponseMessage, EventSubscriptionMessage, ServerMessage,
-  DEFAULT_IPC_PORT,
+  ClientResponseMessage, EventSubscriptionMessage, HearBroadcastMessage,
+  ServerMessage, DEFAULT_IPC_PORT,
 };
 
 pub struct IpcClient {
@@ -76,6 +76,23 @@ impl IpcClient {
       if let ServerMessage::EventSubscription(event_sub) = response {
         if &event_sub.subscription_id == subscription_id {
           return Some(event_sub);
+        }
+      }
+    }
+
+    None
+  }
+
+  /// Waits for and returns the next broadcast word matching the given
+  /// `hear` subscription ID.
+  pub async fn hear_broadcast(
+    &mut self,
+    subscription_id: &Uuid,
+  ) -> Option<HearBroadcastMessage> {
+    while let Ok(response) = self.next_message().await {
+      if let ServerMessage::HearBroadcast(broadcast) = response {
+        if &broadcast.subscription_id == subscription_id {
+          return Some(broadcast);
         }
       }
     }
